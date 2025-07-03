@@ -1,5 +1,5 @@
 """
-Service centralisé pour toutes les interactions avec l'IA et la reconnaissance vocale (version Ollama)
+Service centralisé pour toutes les interactions avec l'IA et la reconnaissance vocale
 """
 import os
 import json
@@ -19,18 +19,17 @@ load_dotenv()
 
 class AIService:
     """
-    Service qui encapsule toutes les interactions avec l'API Ollama
-    et fournit des méthodes unifiées pour la transcription audio (placeholder) et l'analyse de texte
+    Service qui encapsule toutes les interactions avec l'API OpenAI
+    et fournit des méthodes unifiées pour la transcription audio et l'analyse de texte
     """
     
     def __init__(self):
-        # Ollama ne nécessite pas de clé API locale par défaut
-        self.ollama_url = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
-        self.completion_url = f'{self.ollama_url}/api/generate'
-        self.transcription_url = f'{self.ollama_url}/api/whisper'
-        self.model_completion = os.environ.get('OLLAMA_MODEL', 'llama3.1:8b')
-        self.model_transcription = 'whisper'  # Si vous avez un modèle Whisper via Ollama
-    
+        self.api_key = os.environ.get('OPENAI_API_KEY')
+        self.transcription_url = 'https://api.openai.com/v1/audio/transcriptions'
+        self.completion_url = 'https://api.openai.com/v1/chat/completions'
+        self.model_transcription = 'gpt-4o-transcribe'
+        self.model_completion = 'gpt-4o-mini'
+        
     def getFileExtension(self, mime_type):
         """
         Retourne l'extension de fichier appropriée pour un type MIME donné
@@ -61,7 +60,8 @@ class AIService:
     
     def validate_api_key(self):
         """Vérifie que la clé API est configurée"""
-        # Pour compatibilité, ne rien faire (Ollama local n'a pas besoin de clé)
+        if not self.api_key:
+            raise ValueError("Clé API OpenAI non configurée")
         return True
     
     def transcribe_audio(self, audio_file_path, audio_mime_type='audio/webm'):
@@ -127,27 +127,37 @@ class AIService:
         if not text:
             return []
         
-        payload = {
-            'model': self.model_completion,
-            'prompt': (
-                "Tu es un assistant spécialisé dans l'extraction d'articles à partir de commandes vocales. "
-                "Ton rôle est d'identifier les noms d'articles mentionnés dans la transcription et de les "
-                "retourner sous forme de liste structurée. Ignore les mots de liaison, les articles (le, la, les) "
-                "et tout ce qui n'est pas un nom d'article.\n"
-                f'Voici la transcription d\'une commande vocale pour emprunter des articles: "{text}". '
-                "Extrais les noms des articles mentionnés et retourne-les sous forme de liste JSON avec un ID unique "
-                "et le nom de chaque article. Format attendu: [{\"id\": 1, \"name\": \"nom de l'article\"}, ...]. "
-                "Ne retourne que le JSON, sans aucun autre texte."
-            ),
-            'stream': False
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
         }
         
-        response = requests.post(self.completion_url, json=payload)
+        completion_payload = {
+            'model': self.model_completion,
+            'messages': [
+                {
+                    'role': 'system',
+                    'content': 'Tu es un assistant spécialisé dans l\'extraction d\'articles à partir de commandes vocales. '
+                              'Ton rôle est d\'identifier les noms d\'articles mentionnés dans la transcription et de les '
+                              'retourner sous forme de liste structurée. Ignore les mots de liaison, les articles (le, la, les) '
+                              'et tout ce qui n\'est pas un nom d\'article.'
+                },
+                {
+                    'role': 'user',
+                    'content': f'Voici la transcription d\'une commande vocale pour emprunter des articles: "{text}". '
+                              'Extrais les noms des articles mentionnés et retourne-les sous forme de liste JSON avec un ID unique '
+                              'et le nom de chaque article. Format attendu: [{"id": 1, "name": "nom de l\'article"}, ...]. '
+                              'Ne retourne que le JSON, sans aucun autre texte.'
+                }
+            ]
+        }
+        
+        response = requests.post(self.completion_url, headers=headers, json=completion_payload)
         
         if response.status_code != 200:
-            raise Exception(f"Erreur lors de l'analyse avec Ollama: {response.text}")
+            raise Exception(f"Erreur lors de l'analyse avec {self.model_completion}: {response.text}")
         
-        return self._parse_ollama_response(response.json())
+        return self._parse_openai_response(response.json())
     
     def extract_items_with_locations(self, text, locations_context):
         """
@@ -177,31 +187,41 @@ class AIService:
         furniture_context = self._format_furniture_context(locations_context.get('furniture', []))
         drawers_context = self._format_drawers_context(locations_context.get('drawers', []))
         
-        payload = {
-            'model': self.model_completion,
-            'prompt': (
-                "Tu es un assistant spécialisé dans l'extraction d'articles et de leurs emplacements "
-                "à partir de commandes vocales. Ton rôle est d'identifier les noms d'articles mentionnés "
-                "dans la transcription et de les associer aux emplacements existants (zone, meuble, tiroir) "
-                "en fonction du contexte fourni. Utilise ton jugement pour faire les meilleures associations "
-                "possibles entre ce qui est dit et les emplacements disponibles.\n"
-                f'Voici la transcription d\'une commande vocale pour ajouter des articles à l\'inventaire: "{text}". '
-                f"\n\nVoici le contexte des emplacements existants:\n\nZONES:\n{zones_context}\n\nMEUBLES:\n{furniture_context}\n\nTIROIRS/NIVEAUX:\n{drawers_context}\n\n"
-                "Extrais les noms des articles mentionnés et associe-les aux emplacements existants. "
-                "Retourne le résultat sous forme de liste JSON avec le format suivant:\n"
-                "[{\"name\": \"nom de l'article\", \"zone_id\": id_zone, \"furniture_id\": id_meuble, \"drawer_id\": id_tiroir}, ...]\n\n"
-                "Assure-toi que les IDs correspondent bien aux emplacements existants dans le contexte fourni. "
-                "Ne retourne que le JSON, sans aucun autre texte."
-            ),
-            'stream': False
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
         }
         
-        response = requests.post(self.completion_url, json=payload)
+        completion_payload = {
+            'model': self.model_completion,
+            'messages': [
+                {
+                    'role': 'system',
+                    'content': 'Tu es un assistant spécialisé dans l\'extraction d\'articles et de leurs emplacements '
+                              'à partir de commandes vocales. Ton rôle est d\'identifier les noms d\'articles mentionnés '
+                              'dans la transcription et de les associer aux emplacements existants (zone, meuble, tiroir) '
+                              'en fonction du contexte fourni. Utilise ton jugement pour faire les meilleures associations '
+                              'possibles entre ce qui est dit et les emplacements disponibles.'
+                },
+                {
+                    'role': 'user',
+                    'content': f'Voici la transcription d\'une commande vocale pour ajouter des articles à l\'inventaire: "{text}". '
+                              f'\n\nVoici le contexte des emplacements existants:\n\nZONES:\n{zones_context}\n\nMEUBLES:\n{furniture_context}\n\nTIROIRS/NIVEAUX:\n{drawers_context}\n\n'
+                              f'Extrais les noms des articles mentionnés et associe-les aux emplacements existants. '
+                              f'Retourne le résultat sous forme de liste JSON avec le format suivant:\n'
+                              f'[{{"name": "nom de l\'article", "zone_id": id_zone, "furniture_id": id_meuble, "drawer_id": id_tiroir}}, ...]\n\n'
+                              f'Assure-toi que les IDs correspondent bien aux emplacements existants dans le contexte fourni. '
+                              f'Ne retourne que le JSON, sans aucun autre texte.'
+                }
+            ]
+        }
+        
+        response = requests.post(self.completion_url, headers=headers, json=completion_payload)
         
         if response.status_code != 200:
-            raise Exception(f"Erreur lors de l'analyse avec Ollama: {response.text}")
+            raise Exception(f"Erreur lors de l'analyse avec {self.model_completion}: {response.text}")
         
-        return self._parse_ollama_response(response.json())
+        return self._parse_openai_response(response.json())
     
     def get_inventory_chat_response(self, items_list, user_query):
         """
@@ -236,21 +256,52 @@ class AIService:
                 )
             inventory_context = "\n".join(inventory_context_parts)
         
-        prompt = f"{inventory_context}\n\nQuestion utilisateur : {user_query}"
-        payload = {
-            'model': self.model_completion,
-            'prompt': prompt,
-            'stream': False
+        messages_for_ai = [
+            {'role': 'system', 'content': inventory_context},
+            {'role': 'user', 'content': user_query}
+        ]
+
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        completion_payload = {
+            'model': self.model_completion, # Utilise le modèle défini dans __init__
+            'messages': messages_for_ai
         }
         
         try:
-            response = requests.post(self.completion_url, json=payload)
-            response.raise_for_status()
-            return self._parse_ollama_response(response.json(), return_str=True)
+            response = requests.post(self.completion_url, headers=headers, json=completion_payload)
+            response.raise_for_status() # Lève une exception pour les codes d'erreur HTTP 4xx/5xx
+            
+            response_data = response.json()
+            # Vérification plus robuste de la structure de la réponse
+            if not response_data or 'choices' not in response_data or not response_data['choices']:
+                raise ValueError("Réponse de l'API OpenAI malformée: 'choices' est manquant ou vide.")
+            
+            first_choice = response_data['choices'][0]
+            if 'message' not in first_choice or 'content' not in first_choice['message']:
+                 raise ValueError("Réponse de l'API OpenAI malformée: 'message' ou 'content' manquant dans le premier choix.")
+
+            ai_message_content = first_choice['message']['content']
+            
+            if not ai_message_content.strip():
+                # Gérer le cas où la réponse est vide ou ne contient que des espaces
+                return "Désolé, je n'ai pas pu générer de réponse pour le moment (contenu vide)."
+            return ai_message_content
+
         except requests.exceptions.RequestException as e:
-            logger.error(f"Erreur lors de l'appel à l'API Ollama (Chat): {e}")
-            raise Exception(f"Erreur de communication avec l'API Ollama: {e}")
-    
+            # Gérer les erreurs réseau ou HTTP
+            logger.error(f"Erreur lors de l'appel à l'API OpenAI (Chat): {e}")
+            # Vous pourriez vouloir logger cette erreur plus formellement
+            raise Exception(f"Erreur de communication avec l'API OpenAI: {e}")
+        except (KeyError, IndexError, ValueError) as e: # Ajout de ValueError
+            # Gérer les erreurs de parsing de la réponse JSON ou réponse malformée
+            logger.error(f"Erreur lors du parsing ou validation de la réponse OpenAI (Chat): {e}")
+            raise Exception(f"Réponse inattendue ou malformée de l'API OpenAI: {e}")
+
+
     def process_audio_file(self, audio_file, audio_mime_type='audio/webm', is_inventory=False, locations_context=None, temporary_only=False):
         """
         Traite un fichier audio et en extrait les informations (articles ou articles+emplacements)
@@ -285,41 +336,75 @@ class AIService:
                 audio_path = temp_file.name
                 audio_file.save(audio_path)
             
-            # Transcription de l'audio (non supportée nativement par Ollama)
-            raise NotImplementedError("La transcription audio n'est pas supportée nativement par Ollama. Utilisez un service Whisper local ou une autre solution.")
+            # Transcription de l'audio
+            transcription_text = self.transcribe_audio(audio_path, audio_mime_type=audio_mime_type)
+            
+            # Extraction des articles ou articles+emplacements
+            if is_inventory and locations_context:
+                logger.debug(f"Mode inventaire détecté avec contexte: {len(locations_context.get('zones', []))} zones, {len(locations_context.get('furniture', []))} meubles, {len(locations_context.get('drawers', []))} tiroirs")
+                items = self.extract_items_with_locations(transcription_text, locations_context)
+                logger.debug(f"Résultat de l'extraction avec emplacements: {len(items)} articles")
+            else:
+                logger.debug("Mode standard détecté")
+                items = self.extract_items_from_text(transcription_text)
+                logger.debug(f"Résultat de l'extraction standard: {len(items)} articles")
+                
+                if temporary_only:
+                    logger.debug("Mode temporaire uniquement activé. Pas de comparaison avec l'existant.")
+                    # Les items sont déjà au format [{'id': ..., 'name': '...'}]
+                    # Ils seront ajoutés comme temporaires par la logique d'appel si aucun db_id n'est présent
+                else:
+                    logger.debug("Mode standard. Comparaison avec les articles existants dans la base de données.")
+                    items = self.compare_with_existing_items(items)
+            
+            # Supprimer le fichier temporaire
+            os.unlink(audio_path)
+            
+            # Retourner un tableau vide au lieu de None si nécessaire
+            if items is None:
+                logger.warning("ATTENTION: Les items sont None, remplacement par tableau vide")
+                return []
+                
+            return items
+            
         except Exception as e:
             # En cas d'erreur, s'assurer que le fichier temporaire est supprimé
             if 'audio_path' in locals() and os.path.exists(audio_path):
                 os.unlink(audio_path)
             raise e
     
-    def _parse_ollama_response(self, response_json, return_str=False):
+    def _parse_openai_response(self, response_json):
         """
-        Analyse la réponse Ollama pour en extraire le contenu
+        Analyse la réponse OpenAI pour en extraire le contenu
         
         Args:
-            response_json (dict): Réponse JSON d'Ollama
+            response_json (dict): Réponse JSON d'OpenAI
             
         Returns:
             list: Liste d'articles ou d'articles avec emplacements
         """
         try:
-            logger.debug(f"Réponse brute d'Ollama: {response_json}")
-            # Ollama retourne {'response': '...'}
-            content = response_json.get('response', '').strip()
+            logger.debug(f"Réponse brute d'OpenAI: {response_json}")
+            if 'choices' not in response_json or not response_json['choices']:
+                logger.error("ERREUR: Pas de choix dans la réponse OpenAI")
+                return []
+                
+            content = response_json['choices'][0]['message']['content'].strip()
             logger.debug(f"Contenu extrait: {content}")
             
             if not content:
-                logger.error("ERREUR: Contenu vide dans la réponse Ollama")
-                return [] if not return_str else ""
-            
-            if return_str:
-                return content
+                logger.error("ERREUR: Contenu vide dans la réponse OpenAI")
+                return []
             
             # Nettoyage du contenu avant parsing
-            content = content.replace('```json', '').replace('```', '').strip()
+            content = content.replace('```json', '').replace('```', '')
+            content = content.strip()
+            logger.debug(f"Contenu nettoyé: {content}")
+            
+            # Essayer d'abord de parser directement le contenu
             try:
                 items = json.loads(content)
+                logger.debug(f"Parsing JSON direct réussi: {items}")
                 
                 # Vérifier si le résultat est bien une liste
                 if not isinstance(items, list):
@@ -357,6 +442,7 @@ class AIService:
                 
                 logger.debug(f"Nombre d'items valides après vérification: {len(valid_items)}")
                 return valid_items
+                
             except json.JSONDecodeError as e:
                 logger.debug(f"Erreur JSON direct: {e}. Essai d'extraction par regex...")
                 # Si ça échoue, essayer d'extraire le JSON de la réponse
@@ -367,15 +453,21 @@ class AIService:
                     logger.debug(f"JSON extrait par regex: {items_json}")
                     try:
                         items = json.loads(items_json)
+                        logger.debug(f"Parsing JSON extrait réussi: {items}")
+                        # Mettre une majuscule à la première lettre de chaque article
                         for item in items:
                             if 'name' in item and item['name']:
                                 item['name'] = item['name'][0].upper() + item['name'][1:] if len(item['name']) > 1 else item['name'].upper()
                         
+                        # Vérifier que tous les items ont les champs requis
                         valid_items = []
                         for item in items:
+                            # Pour les articles temporaires, seul le nom est requis
                             if 'name' in item and item['name']:
+                                # Si c'est un article avec emplacement, vérifier les champs requis
                                 if all(k in item for k in ['zone_id', 'furniture_id', 'drawer_id']):
                                     valid_items.append(item)
+                                # Si c'est un article temporaire (sans emplacement), l'ajouter tel quel
                                 elif not any(k in item for k in ['zone_id', 'furniture_id', 'drawer_id']):
                                     valid_items.append(item)
                                 else:
@@ -392,8 +484,8 @@ class AIService:
                     logger.debug("Aucun JSON trouvé dans la réponse par regex")
                     return []
         except Exception as e:
-            logger.error(f"Erreur lors de l'analyse de la réponse Ollama: {e}")
-            return [] if not return_str else ""
+            logger.error(f"Erreur lors de l'analyse de la réponse OpenAI: {e}")
+            return []
     
     def _format_zones_context(self, zones):
         """
@@ -481,19 +573,26 @@ class AIService:
             db_items_for_prompt = [{"id": item.id, "name": item.name} for item in db_conventional_items]
             prompt = self._build_batch_comparison_prompt(recognized_item_names, db_items_for_prompt)
 
+            headers = {
+                'Authorization': f'Bearer {self.api_key}',
+                'Content-Type': 'application/json'
+            }
             payload = {
                 'model': self.model_completion,
-                'prompt': (
-                    "Vous êtes un assistant IA expert en JSON qui ne répond que par du JSON valide.\n" + prompt
-                ),
-                'stream': False
+                'messages': [
+                    {'role': 'system', 'content': 'Vous êtes un assistant IA expert en JSON qui ne répond que par du JSON valide.'},
+                    {'role': 'user', 'content': prompt}
+                ],
+                'response_format': {"type": "json_object"},
+                'temperature': 0.0
             }
 
-            logger.info("Envoi de la requête de comparaison en batch à Ollama...")
-            response = requests.post(self.completion_url, json=payload, timeout=45)
+            logger.info("Envoi de la requête de comparaison en batch à l'IA...")
+            response = requests.post(self.completion_url, headers=headers, json=payload, timeout=45)
             response.raise_for_status()
 
-            ai_results_str = response.json().get('response', '')
+            response_data = response.json()
+            ai_results_str = response_data['choices'][0]['message']['content']
             logger.debug(f"Réponse JSON brute de l'IA: {ai_results_str}")
 
             matched_results = json.loads(ai_results_str).get("matched_items", [])
@@ -524,9 +623,9 @@ class AIService:
             return items
 
         except requests.exceptions.Timeout:
-            logger.error("Erreur: La requête vers l'API Ollama a expiré.")
+            logger.error("Erreur: La requête vers l'API OpenAI a expiré.")
         except requests.exceptions.RequestException as e:
-            logger.error(f"Erreur: Problème de connexion avec l'API Ollama: {e}")
+            logger.error(f"Erreur: Problème de connexion avec l'API OpenAI: {e}")
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Erreur: Impossible de parser la réponse JSON de l'IA: {e}")
         except Exception as e:

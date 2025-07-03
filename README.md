@@ -2,6 +2,10 @@
 
 Créé par **Les Frères Poulain**.
 
+```
+Version modifiée pour utiliser Ollama à la place.
+```
+
 JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets et suivre les emprunts. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via OpenAI.
 
 **Vidéo de présentation du projet :** [Lien YouTube](https://www.youtube.com/watch?v=ZFS_MIF8jPY&t)
