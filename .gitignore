@@ -1,8 +1,10 @@
 __pycache__/
 *.py[cod]
 *.db
-.env
+env
 
 # Fichiers de log
 logs/
 *.log
+
+venv/
