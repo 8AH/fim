@@ -2,8 +2,10 @@
 
 Créé par **Les Frères Poulain**.
 
+Modifié par **8AH**.
+
 ```
-Version modifiée pour utiliser Ollama à la place.
+Version modifiée pour utiliser Ollama (llama3.1:8b) et faster-whisper-server en lieu et place d'OpenAI.
 ```
 
 JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets et suivre les emprunts. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via OpenAI.
@@ -38,7 +40,7 @@ JPJR est une petite application web développée avec Flask pour gérer un inven
 Par défaut, l'application utilise SQLite. Vous pouvez passer à PostgreSQL en définissant `DB_TYPE=postgresql` dans votre fichier `.env`.
 
 ---
-
+<!-- 
 ### 2. Utilisation avec Docker Compose
 
 #### a) Avec SQLite (par défaut)
@@ -157,7 +159,7 @@ FLASK_DEBUG=0
 Lancez l'ensemble :
 ```bash
 docker-compose up -d
-```
+``` -->
 
 ---
 
@@ -174,7 +176,7 @@ docker-compose up -d
         *   ⚡ **Ajout Rapide "Temporaire" :** Dictez et ajoutez instantanément des articles sans emplacement prédéfini.
         *   🧠 **Mode "Complet" (Recherche/Ajout Intelligent) :** L'IA identifie vos articles, les rapproche de votre inventaire existant ou crée de nouveaux articles temporaires. (Note : peut solliciter davantage l'API pour une pertinence accrue).
     *   🏠 **Page Dédiée "Ajout Vocal Conventionnel" :** Dictez le nom de l'article ET son emplacement (Zone, Meuble, Tiroir) pour l'intégrer parfaitement à votre système de rangement, avec l'aide de l'IA pour un rapprochement intelligent.
-*   💬 **Dialogue avec vos Données (via GPT-4o-mini) :** Posez des questions en langage naturel sur votre inventaire directement depuis la barre de menu !
+*   💬 **Dialogue avec vos Données (via llama3.1:8b) :** Posez des questions en langage naturel sur votre inventaire directement depuis la barre de menu !
 *   📄 **Export PDF Pratique :** Obtenez une copie de votre inventaire complet au format PDF en un clic.
 
 ## 🗄️ Base de Données : Flexibilité SQLite & PostgreSQL
@@ -186,17 +188,15 @@ docker-compose up -d
 
 ```
 config/                           # Modules de configuration
-docs/                             # Documentation technique
+data/                             # Fichier SQLite3
 docker/                           # Fichiers Docker spécifiques
-docker-compose.yml                # Docker Compose pour SQLite (déploiement simple)
-docker-compose-postgres.yml       # Docker Compose pour PostgreSQL (app + base)
+docs/                             # Documentation technique
 src/                              # Code source de l'application
     app.py                        # Point d'entrée de Flask
     models/                       # Modèles SQLAlchemy
     routes/                       # Blueprints (groupes de routes)
     static/                       # Fichiers statiques (CSS, JS, images)
     templates/                    # Modèles Jinja2
-tests/                            # Tests unitaires et d'intégration
 ```
 
 ## ©️ Licence
