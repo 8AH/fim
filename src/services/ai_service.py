@@ -8,6 +8,7 @@ import requests
 import re
 import logging
 from dotenv import load_dotenv
+from openai import OpenAI  # Import de la bibliothèque OpenAI pour les appels API
 from src.models.item import Item  # Import du modèle Item pour la comparaison
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -25,9 +26,10 @@ class AIService:
     
     def __init__(self):
         # Ollama ne nécessite pas de clé API locale par défaut
+        self.api_key = "Placeholder"  # Placeholder pour la clé API, peut être configuré via env si nécessaire
         self.ollama_url = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+        self.whisper_url = os.environ.get('WHISPER_URL', 'http://localhost:8000/v1/audio/transcriptions')  # URL du serveur Whisper
         self.completion_url = f'{self.ollama_url}/api/generate'
-        self.transcription_url = f'{self.ollama_url}/api/whisper'
         self.model_completion = os.environ.get('OLLAMA_MODEL', 'llama3.1:8b')
         self.model_transcription = 'whisper'  # Si vous avez un modèle Whisper via Ollama
     
@@ -64,9 +66,9 @@ class AIService:
         # Pour compatibilité, ne rien faire (Ollama local n'a pas besoin de clé)
         return True
     
-    def transcribe_audio(self, audio_file_path, audio_mime_type='audio/webm'):
+    def transcribe_audio_post(self, audio_file_path, audio_mime_type='audio/webm'):
         """
-        Transcrit un fichier audio en texte en utilisant l'API Whisper d'OpenAI
+        Transcrit un fichier audio en texte en utilisant faster-whisper-server
         
         Args:
             audio_file_path (str): Chemin vers le fichier audio
@@ -74,44 +76,71 @@ class AIService:
             
         Returns:
             str: Texte transcrit
-            
         Raises:
-            Exception: En cas d'erreur de transcription avec l'API OpenAI
+            Exception: En cas d'erreur de transcription avec faster-whisper-server
         """
-        self.validate_api_key()
-        
+        # URL du serveur faster-whisper (peut être configuré via env)
         try:
             with open(audio_file_path, 'rb') as audio_file:
                 headers = {'Authorization': f'Bearer {self.api_key}'}
-                
+
                 files = {
-                    'file': (os.path.basename(audio_file_path), audio_file, audio_mime_type),
-                    'model': (None, self.model_transcription)
+                    'audio_file': (os.path.basename(audio_file_path), audio_file, audio_mime_type)
                 }
-                
-                logging.info(f"Envoi d'un fichier audio pour transcription: {os.path.basename(audio_file_path)} (type: {audio_mime_type})")
-                response = requests.post(self.transcription_url, headers=headers, files=files)
-                
+                logging.info(f"Envoi d'un fichier audio à faster-whisper-server: {os.path.basename(audio_file_path)} (type: {audio_mime_type})")
+                response = requests.post(self.whisper_url, headers=headers, files=files)
                 if response.status_code != 200:
-                    error_message = f"Erreur API OpenAI ({response.status_code}): {response.text}"
+                    error_message = f"Erreur API faster-whisper-server ({response.status_code}): {response.text}"
                     logging.error(error_message)
-                    if response.status_code == 500:
-                        raise Exception("Erreur serveur OpenAI. Il s'agit d'un problème temporaire avec le service d'IA. Veuillez réessayer dans quelques instants.")
-                    else:
-                        raise Exception(f"Erreur lors de la transcription: {response.text}")
-                
+                    raise Exception(f"Erreur lors de la transcription: {response.text}")
                 transcription_result = response.json()
                 logging.info(f"Transcription réussie: {len(transcription_result.get('text', ''))} caractères")
                 return transcription_result.get('text', '')
         except requests.exceptions.RequestException as e:
-            error_message = f"Erreur de connexion à l'API OpenAI: {str(e)}"
+            error_message = f"Erreur de connexion à faster-whisper-server: {str(e)}"
             logging.error(error_message)
-            raise Exception("Impossible de se connecter au service d'IA. Veuillez vérifier votre connexion internet et réessayer.")
+            raise Exception("Impossible de se connecter au service de transcription. Veuillez vérifier votre connexion et le serveur.")
         except Exception as e:
-            if "Erreur lors de la transcription" not in str(e):
-                logging.error(f"Erreur inattendue lors de la transcription: {str(e)}")
+            logging.error(f"Erreur inattendue lors de la transcription: {str(e)}")
             raise
     
+    def transcribe_audio(self, audio_file_path, audio_mime_type='audio/webm'):
+        """
+        Transcrit un fichier audio en texte en utilisant faster-whisper-server
+        
+        Args:
+            audio_file_path (str): Chemin vers le fichier audio
+            audio_mime_type (str): Type MIME du fichier audio
+            
+        Returns:
+            str: Texte transcrit
+        Raises:
+            Exception: En cas d'erreur de transcription avec faster-whisper-server
+        """
+        # URL du serveur faster-whisper (peut être configuré via env)
+        try:
+            with open(audio_file_path, 'rb') as audio_file:
+                client = OpenAI(api_key="cant-be-empty", base_url="http://localhost:8000/v1/")
+
+                files = {
+                    'audio_file': (os.path.basename(audio_file_path), audio_file, audio_mime_type)
+                }
+                logging.info(f"Envoi d'un fichier audio à faster-whisper-server: {os.path.basename(audio_file_path)} (type: {audio_mime_type})")
+                
+                transcript = client.audio.transcriptions.create(
+                    model="Systran/faster-distil-whisper-large-v3", file=audio_file, language="fr",
+                )
+                return transcript.text
+        except requests.exceptions.RequestException as e:
+            error_message = f"Erreur de connexion à faster-whisper-server: {str(e)}"
+            logging.error(error_message)
+            raise Exception("Impossible de se connecter au service de transcription. Veuillez vérifier votre connexion et le serveur.")
+        except Exception as e:
+            logging.error(f"Erreur inattendue lors de la transcription: {str(e)}")
+            raise
+
+
+
     def extract_items_from_text(self, text):
         """
         Extrait les noms d'articles à partir d'un texte
@@ -254,17 +283,15 @@ class AIService:
     def process_audio_file(self, audio_file, audio_mime_type='audio/webm', is_inventory=False, locations_context=None, temporary_only=False):
         """
         Traite un fichier audio et en extrait les informations (articles ou articles+emplacements)
-        
+        Utilise faster-whisper-server pour la transcription.
         Args:
             audio_file: Fichier audio à traiter
             is_inventory (bool): Si True, extrait les articles avec leurs emplacements
             locations_context (dict): Contexte des emplacements (requis si is_inventory=True)
-            
         Returns:
             list: Liste d'articles (ou articles avec emplacements)
         """
         try:
-            # Déterminer le suffixe du fichier à partir du mimeType
             mime_to_suffix = {
                 'audio/webm': '.webm',
                 'audio/mp4': '.mp4',
@@ -284,9 +311,21 @@ class AIService:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
                 audio_path = temp_file.name
                 audio_file.save(audio_path)
-            
-            # Transcription de l'audio (non supportée nativement par Ollama)
-            raise NotImplementedError("La transcription audio n'est pas supportée nativement par Ollama. Utilisez un service Whisper local ou une autre solution.")
+
+            # Transcription via faster-whisper-server
+            transcription = self.transcribe_audio(audio_path, audio_mime_type)
+
+            # Nettoyer le fichier temporaire
+            if os.path.exists(audio_path):
+                os.unlink(audio_path)
+
+            # Extraction des articles
+            if is_inventory:
+                if not locations_context:
+                    raise ValueError("Le contexte des emplacements est requis pour l'extraction d'inventaire.")
+                return self.extract_items_with_locations(transcription, locations_context)
+            else:
+                return self.extract_items_from_text(transcription)
         except Exception as e:
             # En cas d'erreur, s'assurer que le fichier temporaire est supprimé
             if 'audio_path' in locals() and os.path.exists(audio_path):

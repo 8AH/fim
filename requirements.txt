@@ -24,5 +24,5 @@ reportlab==4.0.7
 pytest==7.4.4
 
 # Traitement audio et API
-openai==1.12.0
+openai==1.55.3
 fpdf
