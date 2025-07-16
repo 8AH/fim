@@ -9,5 +9,5 @@ services:
     volumes:
       - ../data:/app/data
     ports:
-      - "5001:5001"
+      - "443:443"
     restart: unless-stopped

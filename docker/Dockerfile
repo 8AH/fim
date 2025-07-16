@@ -19,7 +19,7 @@ COPY .env.example .env
 ENV PYTHONPATH="/app"
 
 # Exposer le port Flask
-EXPOSE 5001
+EXPOSE 443
 
 # Commande de lancement (modifiez si le point d'entrée diffère)
 CMD ["python", "src/app.py"]
