@@ -8,7 +8,7 @@ Modifié par **8AH**.
 Version modifiée pour utiliser Ollama (llama3.1:8b) et faster-whisper-server en lieu et place d'OpenAI.
 ```
 
-JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets et suivre les emprunts. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via OpenAI.
+JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets et suivre les emprunts. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via faster-whisper-server.
 
 **Vidéo de présentation du projet :** [Lien YouTube](https://www.youtube.com/watch?v=ZFS_MIF8jPY&t)
 
@@ -38,9 +38,9 @@ JPJR est une petite application web développée avec Flask pour gérer un inven
     ```
 
 Par défaut, l'application utilise SQLite. Vous pouvez passer à PostgreSQL en définissant `DB_TYPE=postgresql` dans votre fichier `.env`.
-
----
 <!-- 
+---
+
 ### 2. Utilisation avec Docker Compose
 
 #### a) Avec SQLite (par défaut)
