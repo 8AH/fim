@@ -3,7 +3,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: jpjr_app
+    image: 8ah/jpjr
+    container_name: jpjr
     env_file:
       - ../.env
     volumes:
@@ -11,3 +12,67 @@ services:
     ports:
       - "443:443"
     restart: unless-stopped
+    networks:
+      jpjr_network:
+        ipv4_address: 172.10.0.10
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    entrypoint: ["/ollama_entrypoint.sh"]
+    runtime: nvidia
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+      - ./ollama_entrypoint.sh:/ollama_entrypoint.sh
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      jpjr_network:
+        ipv4_address: 172.10.0.20
+
+  faster-whisper-server-cuda:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: whisper
+    build:
+      dockerfile: Dockerfile.cuda
+      context: .
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    volumes:
+      - hugging_face_cache:/root/.cache/huggingface
+    develop:
+      watch:
+        - path: faster_whisper_server
+          action: rebuild
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    networks:
+      jpjr_network:
+        ipv4_address: 172.10.0.30
+
+volumes:
+  hugging_face_cache:
+  ollama:
+
+networks:
+  jpjr_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.10.0.0/24
