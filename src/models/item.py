@@ -18,7 +18,11 @@ class Item(db.Model):
     zone = db.Column(db.String(100), nullable=True)
     mobilier = db.Column(db.String(100), nullable=True)
     niveau_tiroir = db.Column(db.String(100), nullable=True)
-    
+
+    # Champs supplémentaires pour les articles
+    supplier = db.Column(db.String(100), nullable=True)
+
+    # Dates de création et d'emprunt
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     borrows = db.relationship('Borrow', backref='item', lazy=True, cascade="all, delete-orphan")
     

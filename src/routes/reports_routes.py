@@ -45,6 +45,7 @@ def export_items_csv():
         writer.writerow([
             item.id,
             item.name,
+            item.supplier,
             item.zone or '',
             item.mobilier or '',
             item.niveau_tiroir or '',
@@ -185,7 +186,7 @@ def generate_all_items_pdf():
 
         # Titre
         pdf.set_font('Arial', 'B', 16)
-        pdf.cell(0, 10, 'Liste de Tout le Matériel', 0, 1, 'C')
+        pdf.cell(0, 10, 'Liste de tout le matériel', 0, 1, 'C')
         pdf.set_font('Arial', '', 10)
         pdf.cell(0, 10, f'Date de génération: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}', 0, 1, 'C')
         pdf.ln(10)
@@ -197,10 +198,11 @@ def generate_all_items_pdf():
             # En-têtes de tableau
             pdf.set_font('Arial', 'B', 10)
             header_height = 7
-            col_widths = {'id': 15, 'name': 60, 'location': 70, 'type': 25, 'created_at': 25}
-            
+            col_widths = {'id': 15, 'name': 50, 'supplier': 35, 'location': 60, 'type': 20, 'created_at': 25}
+
             pdf.cell(col_widths['id'], header_height, 'ID', 1, 0, 'C')
             pdf.cell(col_widths['name'], header_height, 'Nom', 1, 0, 'C')
+            pdf.cell(col_widths['supplier'], header_height, 'Fournisseur', 1, 0, 'C')
             pdf.cell(col_widths['location'], header_height, 'Emplacement', 1, 0, 'C')
             pdf.cell(col_widths['type'], header_height, 'Type', 1, 0, 'C')
             pdf.cell(col_widths['created_at'], header_height, 'Créé le', 1, 1, 'C')
@@ -212,14 +214,65 @@ def generate_all_items_pdf():
                 item_type = "Temporaire" if item.is_temporary else "Permanent"
                 created_date = item.created_at.strftime("%d/%m/%y") if item.created_at else "N/A"
                 location_text = item.location_info if item.location_info else "N/A"
+                supplier = item.supplier if hasattr(item, 'supplier') and item.supplier else "N/A"
 
-                # Utilisation de cell au lieu de multi_cell pour la simplicité et la cohérence
-                # Le texte long sera coupé par FPDF. Une gestion plus avancée du texte nécessiterait des calculs de largeur de texte.
-                pdf.cell(col_widths['id'], row_height, str(item.id), 1, 0, 'C')
-                pdf.cell(col_widths['name'], row_height, item.name, 1, 0, 'L')
-                pdf.cell(col_widths['location'], row_height, location_text, 1, 0, 'L')
-                pdf.cell(col_widths['type'], row_height, item_type, 1, 0, 'C')
-                pdf.cell(col_widths['created_at'], row_height, created_date, 1, 1, 'C') # ln=1 pour la dernière cellule de la ligne
+                # On prépare les contenus susceptibles d'être longs
+                cell_values = [
+                    str(item.id),
+                    item.name,
+                    supplier,
+                    location_text,
+                    item_type,
+                    created_date
+                ]
+                # Largeurs dans l'ordre
+                widths = [col_widths['id'], col_widths['name'], col_widths['supplier'], col_widths['location'], col_widths['type'], col_widths['created_at']]
+                aligns = ['C', 'L', 'L', 'L', 'C', 'C']
+
+                # Calculer la hauteur maximale nécessaire pour cette ligne
+                # On utilise multi_cell pour les colonnes texte (name, supplier, location)
+                # On découpe la ligne en 3 parties : id, puis les 3 colonnes longues, puis type et date
+                y_before = pdf.get_y()
+                x_start = pdf.get_x()
+
+                # ID
+                pdf.multi_cell(widths[0], row_height, cell_values[0], border=1, align=aligns[0], max_line_height=row_height)
+                x_after_id = x_start + widths[0]
+                pdf.set_xy(x_after_id, y_before)
+
+                # Nom
+                y_nom = pdf.get_y()
+                pdf.multi_cell(widths[1], row_height, cell_values[1], border=1, align=aligns[1], max_line_height=row_height)
+                h_nom = pdf.get_y() - y_nom
+                x_after_nom = x_after_id + widths[1]
+                pdf.set_xy(x_after_nom, y_before)
+
+                # Fournisseur
+                y_fourn = pdf.get_y()
+                pdf.multi_cell(widths[2], row_height, cell_values[2], border=1, align=aligns[2], max_line_height=row_height)
+                h_fourn = pdf.get_y() - y_fourn
+                x_after_fourn = x_after_nom + widths[2]
+                pdf.set_xy(x_after_fourn, y_before)
+
+                # Emplacement
+                y_loc = pdf.get_y()
+                pdf.multi_cell(widths[3], row_height, cell_values[3], border=1, align=aligns[3], max_line_height=row_height)
+                h_loc = pdf.get_y() - y_loc
+                x_after_loc = x_after_fourn + widths[3]
+                # Hauteur max des colonnes multi_cell
+                max_h = max(h_nom, h_fourn, h_loc, row_height)
+
+                # Type
+                pdf.set_xy(x_after_loc, y_before)
+                pdf.multi_cell(widths[4], max_h, cell_values[4], border=1, align=aligns[4], max_line_height=row_height)
+
+                # Date
+                x_after_type = x_after_loc + widths[4]
+                pdf.set_xy(x_after_type, y_before)
+                pdf.multi_cell(widths[5], max_h, cell_values[5], border=1, align=aligns[5], max_line_height=row_height)
+
+                # Se placer à la ligne suivante
+                pdf.set_y(y_before + max_h)
 
         # Générer le PDF dans un fichier temporaire
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:

@@ -58,6 +58,7 @@
                             <th>Meuble</th>
                             <th>Tiroir/Niveau</th>
                             <th>État</th>
+                            <th>Fournisseur</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -93,6 +94,18 @@
                                 <span class="badge" {% if item.borrower_name %}data-bs-toggle="tooltip" data-bs-placement="top" title="Emprunté par: {{ item.borrower_name }}"{% endif %}>Emprunté</span>
                                 {% else %}
                                 <span class="badge">Disponible</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.supplier %}
+                                {% set supplier_str = item.supplier.strip() %}
+                                {% if supplier_str.lower().startswith('http') or supplier_str.lower().startswith('www') %}
+                                    <a href="{{ supplier_str if supplier_str.lower().startswith('http') else 'http://' ~ supplier_str }}" target="_blank" rel="noopener noreferrer">{{ supplier_str }}</a>
+                                {% else %}
+                                    {{ supplier_str }}
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">Non spécifié</span>
                                 {% endif %}
                             </td>
                             <td>

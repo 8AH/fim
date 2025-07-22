@@ -205,6 +205,7 @@ def items_list():
         item_dict = {
             'id': item.id,
             'name': item.name,
+            'supplier': item.supplier,
             'is_borrowed': is_borrowed,
             'is_temporary': item.is_temporary,
             'borrower_name': borrower_name  # Ajouter le nom de l'emprunteur
@@ -242,6 +243,7 @@ def add_item():
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
+        supplier = request.form.get('supplier', '').strip()  # Nouveau champ pour le fournisseur
         zone_id_str = request.form.get('zone_id')
         furniture_id_str = request.form.get('furniture_id')
         drawer_id_str = request.form.get('drawer_id')
@@ -282,6 +284,7 @@ def add_item():
         try:
             existing_item = Item.query.filter_by(
                 name=name,
+                supplier=supplier,
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -294,6 +297,7 @@ def add_item():
 
             new_item = Item(
                 name=name,
+                supplier=supplier,
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -325,6 +329,7 @@ def edit_item(item_id):
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
+        supplier = request.form.get('supplier', '').strip()  # Nouveau champ pour le fournisseur
         zone_id = request.form.get('zone_id')
         furniture_id = request.form.get('furniture_id')
         drawer_id = request.form.get('drawer_id')
@@ -339,6 +344,7 @@ def edit_item(item_id):
         
         try:
             item.name = name
+            item.supplier = supplier
             item.zone_id = zone_id
             item.furniture_id = furniture_id
             item.drawer_id = drawer_id

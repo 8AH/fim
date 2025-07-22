@@ -211,7 +211,7 @@ class AIService:
             ]
             for item in items_list:
                 inventory_context_parts.append(
-                    f"- Nom: {item.name}, Emplacement: {item.location_info or 'N/A'}"
+                    f"- Nom: {item.name}, Fournisseur : {item.supplier}, Emplacement: {item.location_info or 'N/A'}"
                 )
             inventory_context = "\n".join(inventory_context_parts)
         

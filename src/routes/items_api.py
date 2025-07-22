@@ -34,6 +34,7 @@ def get_items():
         results.append({
             'id': item.id,
             'name': item.name,
+            'supplier': item.supplier,
             'zone_id': item.zone_id,
             'furniture_id': item.furniture_id,
             'drawer_id': item.drawer_id,
@@ -59,6 +60,7 @@ def get_item(item_id):
     result = {
         'id': item.id,
         'name': item.name,
+        'supplier': item.supplier,
         'zone_id': item.zone_id,
         'furniture_id': item.furniture_id,
         'drawer_id': item.drawer_id,
@@ -162,6 +164,7 @@ def add_item():
             })
         else:
             # Création d'un article permanent avec emplacement
+            supplier = data.get('supplier', '').strip()
             zone_id = data.get('zone_id')
             furniture_id = data.get('furniture_id')
             drawer_id = data.get('drawer_id')
@@ -181,6 +184,7 @@ def add_item():
             # Vérifier si un article conventionnel identique existe déjà
             existing_item = Item.query.filter_by(
                 name=name,
+                supplier=supplier,
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -193,6 +197,7 @@ def add_item():
                     'item': { # Renvoyer l'article existant peut être utile pour le client
                         'id': existing_item.id,
                         'name': existing_item.name,
+                        'supplier': existing_item.supplier,
                         'zone_id': existing_item.zone_id,
                         'furniture_id': existing_item.furniture_id,
                         'drawer_id': existing_item.drawer_id,
@@ -218,6 +223,8 @@ def add_item():
             new_item = Item(
                 name=name,
                 is_temporary=False,
+                supplier=supplier,
+                # Clés étrangères pour les emplacements
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -235,6 +242,7 @@ def add_item():
                 'item': {
                     'id': new_item.id,
                     'name': new_item.name,
+                    'supplier': new_item.supplier,
                     'zone_id': new_item.zone_id,
                     'furniture_id': new_item.furniture_id,
                     'drawer_id': new_item.drawer_id,
