@@ -1,5 +1,5 @@
 services:
-  app:
+  jpjr:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -19,13 +19,11 @@ services:
   ollama:
     image: ollama/ollama
     container_name: ollama
-    entrypoint: ["/ollama_entrypoint.sh"]
     runtime: nvidia
     ports:
       - "11434:11434"
     volumes:
       - ollama:/root/.ollama
-      - ./ollama_entrypoint.sh:/ollama_entrypoint.sh
     deploy:
       resources:
         reservations:
@@ -38,35 +36,33 @@ services:
       jpjr_network:
         ipv4_address: 172.10.0.20
 
-  faster-whisper-server-cuda:
-    image: fedirz/faster-whisper-server:latest-cuda
-    container_name: whisper
+  speaches:
+    container_name: speaches
+    image: ghcr.io/speaches-ai/speaches:latest-cuda-12.6.3
     build:
-      dockerfile: Dockerfile.cuda
-      context: .
-      platforms:
-        - linux/amd64
-        - linux/arm64
+      args:
+        BASE_IMAGE: nvidia/cuda:12.9.0-cudnn-runtime-ubuntu24.04
     restart: unless-stopped
     ports:
       - 8000:8000
     volumes:
-      - hugging_face_cache:/root/.cache/huggingface
-    develop:
-      watch:
-        - path: faster_whisper_server
-          action: rebuild
+      - hf-hub-cache:/home/ubuntu/.cache/huggingface/hub
+    environment:
+      - enable_ui=false
+    
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: ["gpu"]
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     networks:
       jpjr_network:
         ipv4_address: 172.10.0.30
 
 volumes:
-  hugging_face_cache:
+  hf-hub-cache:
   ollama:
 
 networks:

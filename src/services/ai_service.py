@@ -25,13 +25,12 @@ class AIService:
     """
     
     def __init__(self):
-        # Ollama ne nécessite pas de clé API locale par défaut
         self.api_key = "Placeholder"  # Placeholder pour la clé API, peut être configuré via env si nécessaire
-        self.ollama_url = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
-        self.whisper_url = os.environ.get('WHISPER_URL', 'http://localhost:8000/v1/audio/transcriptions')  # URL du serveur Whisper
+        self.ollama_url = os.environ.get('OLLAMA_URL')
+        self.whisper_url = os.environ.get('WHISPER_URL') + "/v1/"  # URL du serveur Whisper
         self.completion_url = f'{self.ollama_url}/api/generate'
         self.model_completion = os.environ.get('OLLAMA_MODEL', 'llama3.1:8b')
-        self.model_transcription = 'whisper'  # Si vous avez un modèle Whisper via Ollama
+        self.model_transcription = os.environ.get('WHISPER_MODEL')
     
     def getFileExtension(self, mime_type):
         """
@@ -61,49 +60,6 @@ class AIService:
         # Retourner l'extension correspondante ou une extension par défaut
         return mime_map.get(base_mime, '.audio')
     
-    def validate_api_key(self):
-        """Vérifie que la clé API est configurée"""
-        # Pour compatibilité, ne rien faire (Ollama local n'a pas besoin de clé)
-        return True
-    
-    def transcribe_audio_post(self, audio_file_path, audio_mime_type='audio/webm'):
-        """
-        Transcrit un fichier audio en texte en utilisant faster-whisper-server
-        
-        Args:
-            audio_file_path (str): Chemin vers le fichier audio
-            audio_mime_type (str): Type MIME du fichier audio
-            
-        Returns:
-            str: Texte transcrit
-        Raises:
-            Exception: En cas d'erreur de transcription avec faster-whisper-server
-        """
-        # URL du serveur faster-whisper (peut être configuré via env)
-        try:
-            with open(audio_file_path, 'rb') as audio_file:
-                headers = {'Authorization': f'Bearer {self.api_key}'}
-
-                files = {
-                    'audio_file': (os.path.basename(audio_file_path), audio_file, audio_mime_type)
-                }
-                logging.info(f"Envoi d'un fichier audio à faster-whisper-server: {os.path.basename(audio_file_path)} (type: {audio_mime_type})")
-                response = requests.post(self.whisper_url, headers=headers, files=files)
-                if response.status_code != 200:
-                    error_message = f"Erreur API faster-whisper-server ({response.status_code}): {response.text}"
-                    logging.error(error_message)
-                    raise Exception(f"Erreur lors de la transcription: {response.text}")
-                transcription_result = response.json()
-                logging.info(f"Transcription réussie: {len(transcription_result.get('text', ''))} caractères")
-                return transcription_result.get('text', '')
-        except requests.exceptions.RequestException as e:
-            error_message = f"Erreur de connexion à faster-whisper-server: {str(e)}"
-            logging.error(error_message)
-            raise Exception("Impossible de se connecter au service de transcription. Veuillez vérifier votre connexion et le serveur.")
-        except Exception as e:
-            logging.error(f"Erreur inattendue lors de la transcription: {str(e)}")
-            raise
-    
     def transcribe_audio(self, audio_file_path, audio_mime_type='audio/webm'):
         """
         Transcrit un fichier audio en texte en utilisant faster-whisper-server
@@ -115,31 +71,28 @@ class AIService:
         Returns:
             str: Texte transcrit
         Raises:
-            Exception: En cas d'erreur de transcription avec faster-whisper-server
+            Exception: En cas d'erreur de transcription avec Whisper
         """
-        # URL du serveur faster-whisper (peut être configuré via env)
         try:
             with open(audio_file_path, 'rb') as audio_file:
-                client = OpenAI(api_key="cant-be-empty", base_url="http://localhost:8000/v1/")
+                client = OpenAI(api_key="cant-be-empty", base_url=self.whisper_url)
 
                 files = {
                     'audio_file': (os.path.basename(audio_file_path), audio_file, audio_mime_type)
                 }
-                logging.info(f"Envoi d'un fichier audio à faster-whisper-server: {os.path.basename(audio_file_path)} (type: {audio_mime_type})")
+                logging.info(f"Envoi d'un fichier audio à Whisper: {os.path.basename(audio_file_path)} (type: {audio_mime_type})")
                 
                 transcript = client.audio.transcriptions.create(
-                    model="Systran/faster-distil-whisper-large-v3", file=audio_file, language="fr",
+                    model=self.model_transcription, file=audio_file, language="fr",
                 )
                 return transcript.text
         except requests.exceptions.RequestException as e:
-            error_message = f"Erreur de connexion à faster-whisper-server: {str(e)}"
+            error_message = f"Erreur de connexion à Whisper: {str(e)}"
             logging.error(error_message)
             raise Exception("Impossible de se connecter au service de transcription. Veuillez vérifier votre connexion et le serveur.")
         except Exception as e:
             logging.error(f"Erreur inattendue lors de la transcription: {str(e)}")
             raise
-
-
 
     def extract_items_from_text(self, text):
         """
@@ -151,7 +104,6 @@ class AIService:
         Returns:
             list: Liste d'articles au format [{"id": 1, "name": "Nom Article"}]
         """
-        self.validate_api_key()
         
         if not text:
             return []
@@ -189,7 +141,6 @@ class AIService:
         Returns:
             list: Liste d'articles avec leurs emplacements
         """
-        self.validate_api_key()
         
         logger.debug(f"Texte transcrit pour extraction d'inventaire: '{text}'")
         logger.debug(f"Contexte des emplacements reçu: {locations_context}")
@@ -244,7 +195,6 @@ class AIService:
         Returns:
             str: La réponse textuelle de l'IA.
         """
-        self.validate_api_key()
 
         if not user_query: # Sécurité, bien que déjà vérifié dans la route
             return "La question ne peut pas être vide."
@@ -500,7 +450,6 @@ class AIService:
         Compare une liste d'articles reconnus avec des articles conventionnels de la base de données en un seul appel API, 
         en utilisant l'IA pour trouver des correspondances sémantiques.
         """
-        self.validate_api_key()
 
         recognized_item_names = [item['name'] for item in items if item.get('name')]
         if not recognized_item_names:

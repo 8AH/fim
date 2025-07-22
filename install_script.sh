@@ -4,6 +4,29 @@
 # This script is designed to install "JPJR" components on a fresh Ubuntu system. It includes Docker, NVIDIA Container Toolkit, Homebrew, Oxker, and Git.
 # It uses dialog for a user-friendly interface and allows for both full and custom installations.
 
+echo " 
+ █████   █████  ██   ██         ██          ██ ██████       ██ ██████  
+██   ██ ██   ██ ██   ██        ██           ██ ██   ██      ██ ██   ██ 
+ █████  ███████ ███████       ██            ██ ██████       ██ ██████  
+██   ██ ██   ██ ██   ██      ██        ██   ██ ██      ██   ██ ██   ██ 
+ █████  ██   ██ ██   ██     ██          █████  ██       █████  ██   ██ 
+                                                                       
+                                                                       "
+
+echo "Bienvenue dans le script d'installation de JPJR.
+
+Ce script est destiné uniquement à Ubuntu ou aux systèmes basés sur Ubuntu et installera dialog et curl s'ils ne sont pas présents.
+
+Pour que JPJR fonctionne, il installera Docker, NVIDIA Container Toolkit, Homebrew, Oxker et Git (personnalisable).
+
+Il clonera également le dépôt JPJR et le configurera pour vous.
+Il extraira les modèles nécessaires pour Ollama et Speaches.
+Veuillez vous assurer de disposer d'une connexion Internet stable avant de continuer.
+
+Les privilèges sudo seront nécessaires pour installer les paquets et apporter des modifications au système.
+Il n'est pas recommandé d'exécuter ce script en tant que root.
+"
+
 # Check if the OS is Ubuntu
 if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -15,112 +38,126 @@ if [ -f /etc/os-release ]; then
 fi
 
 # Check and install dialog if not present
-if ! command -v dialog &> /dev/null; then
-    echo "Installing dialog..."
-    sudo apt-get update && sudo apt-get install -y dialog
+if command -v dialog &> /dev/null 
+    then
+        echo "Dialog is already installed."
+    else
+        echo "Installing dialog..."
+        sudo apt update && sudo apt install -y dialog
+fi
+
+if command -v curl &> /dev/null
+    then
+        echo "curl is already installed."
+    else
+        echo "curl is not installed. Installing now..."
+        sudo apt update && sudo apt install curl -y 
 fi
 
 # Function to install Docker
 install_docker() {
-    if ! command -v docker &> /dev/null; then
-        echo "Installing Docker..."
-        # Install required packages
-        sudo apt-get update
-        sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    if command -v docker &> /dev/null   
+        then
+            dialog --title "Installation terminée" --msgbox "Docker est déjà installé." 6 60
+        else
+            echo "Installing Docker..."
+            # Install required packages
+            sudo apt-get update
+            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 
-        # Add Docker’s official GPG key
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+            # Add Docker’s official GPG key
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
-        # Add Docker repository
-        sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+            # Add Docker repository
+            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 
-        # Install Docker
-        sudo apt-get update
-        sudo apt-get install -y docker-ce
+            # Install Docker
+            sudo apt-get update
+            sudo apt-get install -y docker-ce
 
-        # Add the current user to the docker group
-        sudo groupadd docker
-        sudo usermod -aG docker $USER
-        newgrp docker
+            # Add the current user to the docker group
+            sudo groupadd docker
+            sudo usermod -aG docker $USER
+            newgrp docker
 
-        echo "Docker installed successfully."
-    else
-        dialog --title "Installation terminée" --msgbox "Docker is already installed." 6 60
+            echo "Docker installed successfully."
     fi
 }
 
 # Function to install NVIDIA Container Toolkit
 install_nvidia_container_toolkit() {
     # Check if nvidia drivers are installed
-    if ! command -v nvidia-smi &> /dev/null; then
-        echo "NVIDIA drivers not found. Installing NVIDIA drivers..."
-        sudo ubuntu-drivers install --gpgpu
-    fi
-    if ! command -v nvidia-ctk &> /dev/null; then
-        echo "NVIDIA Container Toolkit not found. Installing NVIDIA Container Toolkit..."
-        echo "Installing NVIDIA Container Toolkit..."
-        # Add the package repositories
+    if command -v nvidia-smi &> /dev/null
+        then
+            echo "NVIDIA drivers are already installed."
+        else
+            echo "NVIDIA drivers not found. Installing NVIDIA drivers..."
+            sudo ubuntu-drivers install --gpgpu
+        fi
+    if command -v nvidia-ctk &> /dev/null
+        then
+            dialog --title "Installation terminée" --msgbox "NVIDIA Container Toolkit est déjà installé." 6 60
+        else
+            echo "NVIDIA Container Toolkit not found. Installing NVIDIA Container Toolkit..."
+            echo "Installing NVIDIA Container Toolkit..."
+            # Add the package repositories
 
-        curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-        && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+            curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+            && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
-        sudo apt-get update
-        export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
-        sudo apt-get install -y \
-        nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-        nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-        libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-        libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
+            sudo apt-get update
+            export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
+            sudo apt-get install -y \
+            nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+            nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+            libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+            libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
 
-        sudo nvidia-ctk runtime configure --runtime=docker
+            sudo nvidia-ctk runtime configure --runtime=docker
 
-        # Restart Docker to apply changes
-        sudo systemctl restart docker
+            # Restart Docker to apply changes
+            sudo systemctl restart docker
 
-        echo "NVIDIA Container Toolkit installed successfully."
-    else
-        dialog --title "Installation terminée" --msgbox "NVIDIA Container Toolkit is already installed." 6 60
-    fi
-}
-
-# Function to install Homebrew
-install_homebrew() {
-    if ! command -v brew &> /dev/null; then
-        echo "Installing Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-        # Add Homebrew to PATH
-        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> $HOME/.bashrc
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-        echo "Homebrew installed successfully."
-    else
-        dialog --title "Installation terminée" --msgbox "Homebrew is already installed." 6 60
+            echo "NVIDIA Container Toolkit installed successfully."
     fi
 }
 
-# Function to install oxker using Homebrew
+# Function to install oxker using Homebrew. Install Homebrew if not present.
 install_oxker() {
-    if ! command -v oxker &> /dev/null; then
-        echo "Installing oxker..."
-        brew install oxker
-        echo "oxker installed successfully."
-    else
-        dialog --title "Installation terminée" --msgbox "oxker is already installed." 6 60
-    fi
+    if command -v brew &> /dev/null
+        then
+            echo "Homebrew is already installed."
+        else
+            echo "Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
+            # Add Homebrew to PATH
+            echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> $HOME/.bashrc
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+            echo "Homebrew installed successfully."
+    fi
+    if command -v oxker &> /dev/null
+        then
+            dialog --title "Installation terminée" --msgbox "Oxker est déjà installé." 6 60
+        else
+            echo "Installing oxker..."
+            brew install oxker
+            echo "oxker installed successfully."
+    fi
 }
 
 # Function to install Git
 install_git() {
-    if ! command -v git &> /dev/null; then
-        echo "Installing Git..."
-        sudo apt-get install -y git
-        echo "Git installed successfully."
-    else
-        dialog --title "Installation terminée" --msgbox "Git is already installed." 6 60
+    if command -v git &> /dev/null
+        then
+            dialog --title "Installation terminée" --msgbox "Git est déjà installé." 6 60
+        else
+            echo "Installing Git..."
+            sudo apt-get install -y git
+            echo "Git installed successfully."
     fi
     
 }
@@ -129,11 +166,27 @@ install_git() {
 setup_repository() {
     echo "Cloning repository and setting up..."
     git clone https://github.com/8AH/jpjr.git
-    cd jpjr/docker
-    sudo chmod +x ollama_entrypoint.sh # Make the entrypoint script executable for Ollama Container
-    docker compose up -d
+    echo "Building Docker images..."
+    docker compose -f jpjr/docker/docker-compose.yml up -d
+    
+    # Download models for Ollama and Speaches using curl
+    echo "Setting up models, it may take a while..."
+    curl http://127.0.0.1:11434/api/pull -d '{"model": "llama3.1:8b"}' # Download the Llama model
+    echo "Llama model downloaded."
+    curl http://127.0.0.1:8000/v1/models/Systran/faster-whisper-large-v3 -X POST # Download the Whisper model
+    echo "Whisper model downloaded."
     echo "Repository setup completed."
 }
+
+rebuild_jpjr() {
+    echo "Rebuilding JPJR..."
+    docker compose -f docker/docker-compose.yml down
+    docker compose -f docker/docker-compose.yml build jpjr
+    docker compose -f docker/docker-compose.yml up -d
+    docker image prune -f
+    echo "JPJR rebuilt successfully."
+}
+
 
 display_main_menu() {
     TEMP_FILE=$(mktemp /tmp/dialog.XXXXXX)
@@ -142,6 +195,8 @@ display_main_menu() {
         --menu "Choisissez une option d'installation:" 15 60 2 \
         1 "Tout installer" \
         2 "Installation personnalisée" \
+        3 "Rebuild JPJR (intégrer les changements après modification du code)" \
+        4 "Quitter" \
         2> "$TEMP_FILE"
 
     main_choice=$(cat "$TEMP_FILE")
@@ -152,7 +207,6 @@ display_main_menu() {
             dialog --infobox "Installation de tous les composants..." 3 50
             install_docker
             install_nvidia_container_toolkit
-            install_homebrew
             install_oxker
             install_git
             setup_repository
@@ -161,6 +215,13 @@ display_main_menu() {
             ;;
         2)
             display_custom_menu
+            ;;
+        3)
+            dialog --infobox "Rebuild de JPJR..." 3 50
+            rebuild_jpjr
+            dialog --title "Rebuild terminé" --msgbox "JPJR a été reconstruit avec succès." 6 60
+            ;;
+        4)
             ;;
     esac
 }
@@ -174,10 +235,9 @@ display_custom_menu() {
         --checklist "Utilisez ESPACE pour sélectionner/désélectionner les composants à installer:" 20 70 8 \
         "1" "Docker" OFF \
         "2" "NVIDIA Container Toolkit" OFF \
-        "3" "Homebrew" OFF \
-        "4" "Oxker" OFF \
-        "5" "Git" OFF \
-        "6" "Cloner et configurer le repository" OFF \
+        "3" "Oxker" OFF \
+        "4" "Git" OFF \
+        "5" "Cloner et configurer le repository" OFF \
         2> "$TEMP_FILE"
 
     choices=$(cat "$TEMP_FILE")
@@ -196,18 +256,14 @@ display_custom_menu() {
                     install_nvidia_container_toolkit
                     ;;
                 3)
-                    dialog --infobox "Installation de Homebrew..." 3 40
-                    install_homebrew
-                    ;;
-                4)
                     dialog --infobox "Installation de Oxker..." 3 40
                     install_oxker
                     ;;
-                5)
+                4)
                     dialog --infobox "Installation de Git..." 3 40
                     install_git
                     ;;
-                6)
+                5)
                     dialog --infobox "Configuration du repository..." 3 40
                     setup_repository
                     ;;
