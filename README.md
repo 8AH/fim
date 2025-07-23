@@ -1,16 +1,12 @@
-# JPJR / Je prends, je rends
+# FIM / Fablab Inventory Manager
 
-Créé par **Les Frères Poulain**.
-
-Modifié par **8AH**.
+Sur une idée originale des **Frères Poulain**.
 
 ```
-Version modifiée pour utiliser Ollama (llama3.1:8b) et faster-whisper-server en lieu et place d'OpenAI.
+Version modifiée pour utiliser Ollama (llama3.1:8b) et speaches en lieu et place d'OpenAI.
 ```
 
-JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets et suivre les emprunts. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via faster-whisper-server.
-
-**Vidéo de présentation du projet :** [Lien YouTube](https://www.youtube.com/watch?v=ZFS_MIF8jPY&t)
+JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets pour un fablab. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via speaches.
 
 ## 🚀 Démarrage Rapide
 
