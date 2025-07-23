@@ -6,7 +6,7 @@
 <div class="container mt-4 mb-4">
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="card-title mb-0 section-title-underline">Ajouter un Article</h2>
+            <h2 class="card-title mb-0 section-title-underline">Ajouter un article</h2>
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('admin.add_item') }}">
@@ -16,8 +16,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="supplier" class="form-label">Fournisseur <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="supplier" name="supplier" value="{{ supplier | default('') }}" required>
+                    <label for="supplier_id" class="form-label">Fournisseur <span class="text-danger">*</span></label>
+                    <select class="form-select" id="supplier_id" name="supplier_id" required>
+                        <option value="">Sélectionnez un fournisseur</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if supplier.id == selected_supplier %}selected{% endif %}>{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 
                 <div class="mb-3">

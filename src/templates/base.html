@@ -20,7 +20,7 @@
 
     <!-- Configuration du mode débogage pour JavaScript -->
     <script>
-        window.FLASK_DEBUG_MODE = {{ FLASK_DEBUG_MODE|tojson }};
+        // window.FLASK_DEBUG_MODE = {{ FLASK_DEBUG_MODE|tojson }};
     </script>
     <script src="{{ url_for('static', filename='js/logger.js') }}"></script>
 </head>
@@ -62,6 +62,7 @@
                         <ul class="dropdown-menu dropdown-menu-dark custom-dropdown" aria-labelledby="adminDropdown">
                             <li><h6 class="dropdown-header">Gestion des données</h6></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.items_list') }}">Liste du matériel</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('supplier.supplier_list') }}">Gestion des fournisseurs</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.inventory_voice_admin') }}">Reconnaissance vocale d'inventaire</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.location_admin') }}">Gestion des emplacements</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Liste des utilisateurs</a></li>

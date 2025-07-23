@@ -3,6 +3,7 @@ from src.models import db
 from src.models.user import User
 from src.models.item import Item
 from src.models.borrow import Borrow
+from src.models.supplier import Supplier
 from datetime import datetime
 
 # Création du blueprint

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des fournisseurs - Administration{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-4">
+    <div class="row">
+        <div class="col-md-12 mb-4 d-flex justify-content-between align-items-center">
+            <h2 class="section-title-underline mb-0"><i class="bi bi-truck me-2"></i>Gestion des fournisseurs</h2>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Liste des fournisseurs</span>
+            <form method="GET" action="{{ url_for('supplier.supplier_list') }}" class="d-flex ms-auto" style="max-width: 300px;">
+                <input class="form-control form-control-sm me-2" type="search" name="search" placeholder="Rechercher par nom..." aria-label="Rechercher" value="{{ search_term if search_term }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+            </form>
+            <a href="{{ url_for('supplier.add_supplier') }}" class="btn btn-success ms-2"><i class="bi bi-plus-circle"></i> Ajouter un fournisseur</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Site web</th>
+                            <th>Email</th>
+                            <th>Commentaire</th>
+                            <th style="width: 120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
+                        <tr>
+                            <td>{{ supplier.name }}</td>
+                            <td>{{ supplier.site or '' }}</td>
+                            <td>{{ supplier.mail or '' }}</td>
+                            <td>{{ supplier.comment or '' }}</td>
+                            <td>
+                                <a href="{{ url_for('supplier.edit_supplier', supplier_id=supplier.id) }}" class="btn btn-primary btn-sm me-1" title="Modifier"><i class="bi bi-pencil-square"></i></a>
+                                <form method="POST" action="{{ url_for('supplier.delete_supplier', supplier_id=supplier.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer ce fournisseur ?');"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center">Aucun fournisseur enregistré.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <a href="{{ url_for('admin.items_list') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Retour à la liste des articles</a>
+</div>
+{% endblock %}

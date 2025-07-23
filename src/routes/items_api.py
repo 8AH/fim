@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from src.models import db
 from src.models.item import Item
+from src.models.supplier import Supplier
 from src.models.location import Zone, Furniture, Drawer
 
 # Création du blueprint
@@ -34,7 +35,7 @@ def get_items():
         results.append({
             'id': item.id,
             'name': item.name,
-            'supplier': item.supplier,
+            'supplier': item.supplier_id,
             'zone_id': item.zone_id,
             'furniture_id': item.furniture_id,
             'drawer_id': item.drawer_id,
@@ -60,7 +61,7 @@ def get_item(item_id):
     result = {
         'id': item.id,
         'name': item.name,
-        'supplier': item.supplier,
+        'supplier_id': item.supplier_id,
         'zone_id': item.zone_id,
         'furniture_id': item.furniture_id,
         'drawer_id': item.drawer_id,
@@ -70,6 +71,9 @@ def get_item(item_id):
 
     # Ajouter les noms de zone/mobilier/tiroir pour la cohérence avec l'API d'ajout
     # et pour faciliter l'affichage côté client.
+    if item.supplier_id:
+        result['supplier_name'] = item.supplier_rel.name if item.supplier_rel else None
+
     if item.zone_rel:
         result['zone_name'] = item.zone_rel.name
     if item.furniture_rel:
@@ -164,27 +168,28 @@ def add_item():
             })
         else:
             # Création d'un article permanent avec emplacement
-            supplier = data.get('supplier', '').strip()
+            supplier_id = data.get('supplier_id')
             zone_id = data.get('zone_id')
             furniture_id = data.get('furniture_id')
             drawer_id = data.get('drawer_id')
             
             # Vérifier que les IDs de localisation sont présents
-            if not zone_id or not furniture_id or not drawer_id:
-                return jsonify({'error': 'Les informations de localisation sont obligatoires pour un article permanent'}), 400
+            if not supplier_id or not zone_id or not furniture_id or not drawer_id:
+                return jsonify({'error': 'Les informations de localisation et du fournisseur sont obligatoires pour un article permanent'}), 400
             
             # Convertir les IDs de localisation en entiers
             try:
+                supplier_id = int(supplier_id)
                 zone_id = int(zone_id)
                 furniture_id = int(furniture_id)
                 drawer_id = int(drawer_id)
             except (ValueError, TypeError):
-                return jsonify({'error': 'Les IDs de localisation (zone, meuble, tiroir) doivent être des entiers valides.'}), 400
+                return jsonify({'error': 'Les IDs de localisation (zone, meuble, tiroir) ou du fournisseur doivent être des entiers valides.'}), 400
 
             # Vérifier si un article conventionnel identique existe déjà
             existing_item = Item.query.filter_by(
                 name=name,
-                supplier=supplier,
+                supplier_id=supplier_id,
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -197,7 +202,7 @@ def add_item():
                     'item': { # Renvoyer l'article existant peut être utile pour le client
                         'id': existing_item.id,
                         'name': existing_item.name,
-                        'supplier': existing_item.supplier,
+                        'supplier_id': existing_item.supplier_id,
                         'zone_id': existing_item.zone_id,
                         'furniture_id': existing_item.furniture_id,
                         'drawer_id': existing_item.drawer_id,
@@ -205,6 +210,11 @@ def add_item():
                         'location_info': existing_item.location_info
                     }
                 }), 409 # HTTP 409 Conflict
+            
+            # Vérifier que le fournisseur existe
+            supplier_obj = db.session.get(Supplier, supplier_id)
+            if not supplier_obj:
+                return jsonify({'error': f'Le fournisseur avec l\'ID {supplier_id} n\'existe pas'}), 400
 
             # Vérifier que les entités de localisation existent
             zone_obj = db.session.get(Zone, zone_id)
@@ -223,7 +233,7 @@ def add_item():
             new_item = Item(
                 name=name,
                 is_temporary=False,
-                supplier=supplier,
+                supplier_id=supplier_id,
                 # Clés étrangères pour les emplacements
                 zone_id=zone_id,
                 furniture_id=furniture_id,
@@ -242,7 +252,7 @@ def add_item():
                 'item': {
                     'id': new_item.id,
                     'name': new_item.name,
-                    'supplier': new_item.supplier,
+                    'supplier_id': new_item.supplier_id,
                     'zone_id': new_item.zone_id,
                     'furniture_id': new_item.furniture_id,
                     'drawer_id': new_item.drawer_id,

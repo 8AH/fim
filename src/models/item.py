@@ -1,5 +1,7 @@
+
 from . import db
 from datetime import datetime
+
 
 class Item(db.Model):
     __tablename__ = 'item'
@@ -19,8 +21,8 @@ class Item(db.Model):
     mobilier = db.Column(db.String(100), nullable=True)
     niveau_tiroir = db.Column(db.String(100), nullable=True)
 
-    # Champs supplémentaires pour les articles
-    supplier = db.Column(db.String(100), nullable=True)
+    # Fournisseur (clé étrangère)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=True)
 
     # Dates de création et d'emprunt
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -30,6 +32,9 @@ class Item(db.Model):
     zone_rel = db.relationship('Zone', backref='items', lazy=True)
     furniture_rel = db.relationship('Furniture', backref='items', lazy=True)
     drawer_rel = db.relationship('Drawer', backref='items', lazy=True)
+
+    # Relation avec le fournisseur
+    supplier_rel = db.relationship('Supplier', backref='items', lazy=True)
 
     def __repr__(self):
         if self.is_temporary:

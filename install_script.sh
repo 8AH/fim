@@ -180,9 +180,9 @@ setup_repository() {
 
 rebuild_jpjr() {
     echo "Rebuilding JPJR..."
-    docker compose -f docker/docker-compose.yml down
-    docker compose -f docker/docker-compose.yml build jpjr
-    docker compose -f docker/docker-compose.yml up -d
+    docker compose -f ./docker/docker-compose.yml down
+    docker compose -f ./docker/docker-compose.yml build jpjr
+    docker compose -f ./docker/docker-compose.yml up -d
     docker image prune -f
     echo "JPJR rebuilt successfully."
 }

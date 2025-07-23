@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.models import db
 from src.models.user import User
 from src.models.item import Item
+from src.models.supplier import Supplier
 from src.models.borrow import Borrow
 from src.models.location import Zone, Furniture, Drawer
 import os
@@ -205,10 +206,10 @@ def items_list():
         item_dict = {
             'id': item.id,
             'name': item.name,
-            'supplier': item.supplier,
             'is_borrowed': is_borrowed,
             'is_temporary': item.is_temporary,
-            'borrower_name': borrower_name  # Ajouter le nom de l'emprunteur
+            'borrower_name': borrower_name,  # Ajouter le nom de l'emprunteur
+            'supplier': item.supplier_rel.name if item.supplier_rel else 'Non spécifié',
         }
         
         # Ajouter les informations de localisation pour les articles non temporaires
@@ -238,12 +239,14 @@ def add_item():
     zones_query = db.session.query(Zone).order_by(Zone.name).all()
     furnitures_query = db.session.query(Furniture).order_by(Furniture.name).all()
     drawers_query = db.session.query(Drawer).order_by(Drawer.name).all()
+    suppliers_query = db.session.query(Supplier).order_by(Supplier.name).all()
 
-    form_data = {'name': '', 'selected_zone': None, 'selected_furniture': None, 'selected_drawer': None}
+    # form_data = {'name': '', 'selected_zone': None, 'selected_furniture': None, 'selected_drawer': None}
+    form_data = {'name': '', 'selected_zone': None, 'selected_furniture': None, 'selected_drawer': None, 'selected_supplier': None}
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
-        supplier = request.form.get('supplier', '').strip()  # Nouveau champ pour le fournisseur
+        supplier_id_str = request.form.get('supplier_id')
         zone_id_str = request.form.get('zone_id')
         furniture_id_str = request.form.get('furniture_id')
         drawer_id_str = request.form.get('drawer_id')
@@ -261,30 +264,37 @@ def add_item():
             form_data['selected_drawer'] = int(drawer_id_str) if drawer_id_str else None
         except ValueError:
             form_data['selected_drawer'] = None
+        try:
+            form_data['selected_supplier'] = int(supplier_id_str) if supplier_id_str else None
+        except ValueError:
+            form_data['selected_supplier'] = None
+
 
         if not name:
             flash("Le nom de l'article est requis.", "danger")
-            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
-        
-        if not zone_id_str or not furniture_id_str or not drawer_id_str:
-             flash("Toutes les informations de localisation (Zone, Mobilier, Tiroir) sont requises.", "danger")
-             return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
+            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
+
+        if not zone_id_str or not furniture_id_str or not drawer_id_str or not supplier_id_str:
+            flash("Toutes les informations (Fournisseur, Zone, Mobilier, Tiroir) sont requises.", "danger")
+            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
 
         try:
             zone_id = int(zone_id_str)
             furniture_id = int(furniture_id_str)
             drawer_id = int(drawer_id_str)
+            supplier_id = int(supplier_id_str)
             form_data['selected_zone'] = zone_id
             form_data['selected_furniture'] = furniture_id
             form_data['selected_drawer'] = drawer_id
+            form_data['selected_supplier'] = supplier_id
         except ValueError:
-            flash("Les identifiants de localisation (Zone, Mobilier, Tiroir) doivent être des nombres valides.", "danger")
-            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
-        
+            flash("Les identifiants doivent être des nombres valides.", "danger")
+            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
+
         try:
             existing_item = Item.query.filter_by(
                 name=name,
-                supplier=supplier,
+                supplier_id=supplier_id,
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -292,12 +302,12 @@ def add_item():
             ).first()
 
             if existing_item:
-                flash(f"Un article conventionnel nommé '{name}' existe déjà à cet emplacement exact.", "warning")
-                return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
+                flash(f"Un article conventionnel nommé '{name}' existe déjà à cet emplacement exact avec ce fournisseur.", "warning")
+                return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
 
             new_item = Item(
                 name=name,
-                supplier=supplier,
+                supplier_id=supplier_id,
                 zone_id=zone_id,
                 furniture_id=furniture_id,
                 drawer_id=drawer_id,
@@ -305,20 +315,20 @@ def add_item():
             )
             db.session.add(new_item)
             db.session.commit()
-            
+
             flash("Article ajouté avec succès.", "success")
             return redirect(url_for('admin.items_list'))
-        
+
         except SQLAlchemyError as e:
             db.session.rollback()
             flash(f"Erreur de base de données lors de l'ajout de l'article: {str(e)}", "danger")
-            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
+            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
         except Exception as e:
             db.session.rollback()
             flash(f"Erreur inattendue lors de l'ajout de l'article: {str(e)}", "danger")
-            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
+            return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
 
-    return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, **form_data)
+    return render_template('admin/add_item.html', zones=zones_query, furnitures=furnitures_query, drawers=drawers_query, suppliers=suppliers_query, **form_data)
 
 @admin_bp.route('/edit-item/<int:item_id>', methods=['GET', 'POST'])
 def edit_item(item_id):
@@ -329,28 +339,22 @@ def edit_item(item_id):
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
-        supplier = request.form.get('supplier', '').strip()  # Nouveau champ pour le fournisseur
-        zone_id = request.form.get('zone_id')
-        furniture_id = request.form.get('furniture_id')
-        drawer_id = request.form.get('drawer_id')
-        
-        if not name:
-            flash("Le nom de l'article est requis.", "danger")
+        supplier_id_str = request.form.get('supplier_id')
+        zone_id_str = request.form.get('zone_id')
+        furniture_id_str = request.form.get('furniture_id')
+        drawer_id_str = request.form.get('drawer_id')
+
+        if not name or not supplier_id_str or not zone_id_str or not furniture_id_str or not drawer_id_str:
+            flash("Tous les champs sont requis.", "danger")
             return redirect(url_for('admin.edit_item', item_id=item_id))
-        
-        if not zone_id or not furniture_id or not drawer_id:
-            flash("Toutes les informations de localisation sont requises.", "danger")
-            return redirect(url_for('admin.edit_item', item_id=item_id))
-        
+
         try:
             item.name = name
-            item.supplier = supplier
-            item.zone_id = zone_id
-            item.furniture_id = furniture_id
-            item.drawer_id = drawer_id
-            
+            item.supplier_id = int(supplier_id_str)
+            item.zone_id = int(zone_id_str)
+            item.furniture_id = int(furniture_id_str)
+            item.drawer_id = int(drawer_id_str)
             db.session.commit()
-            
             flash("Article modifié avec succès.", "success")
             return redirect(url_for('admin.items_list'))
         except Exception as e:
@@ -362,8 +366,9 @@ def edit_item(item_id):
     zones = db.session.query(Zone).order_by(Zone.name).all()
     furnitures = db.session.query(Furniture).order_by(Furniture.name).all()
     drawers = db.session.query(Drawer).order_by(Drawer.name).all()
+    suppliers = db.session.query(Supplier).order_by(Supplier.name).all()
     
-    return render_template('admin/edit_item.html', item=item, zones=zones, furnitures=furnitures, drawers=drawers)
+    return render_template('admin/edit_item.html', item=item, zones=zones, furnitures=furnitures, drawers=drawers, suppliers=suppliers)
 
 @admin_bp.route('/items/delete/<int:item_id>', methods=['POST'])
 def delete_item(item_id):

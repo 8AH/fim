@@ -17,9 +17,14 @@
                     <input type="text" class="form-control" id="name" name="name" value="{{ item.name }}" required>
                 </div>
 
-                <div class="mb-3">
-                    <label for="supplier" class="form-label">Fournisseur <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="supplier" name="supplier" value="{{ item.supplier }}" required>
+               <div class="mb-3">
+                    <label for="supplier_id" class="form-label">Fournisseur <span class="text-danger">*</span></label>
+                    <select class="form-select" id="supplier_id" name="supplier_id" required>
+                        <option value="">Sélectionnez un fournisseur</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if supplier.id == item.supplier_id %}selected{% endif %}>{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 
                 <div class="mb-3">

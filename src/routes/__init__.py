@@ -1,3 +1,4 @@
+from .supplier_routes import supplier_bp
 # Ce fichier permet l'importation des modules dans le package routes
 from .location_routes import location_bp
 from .admin_routes import admin_bp
@@ -18,4 +19,5 @@ blueprints = [
     loans_api_bp,
     reports_bp,
     utils_bp,
+    supplier_bp
 ]

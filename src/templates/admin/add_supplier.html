@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter un Fournisseur - Administration{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-4">
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="card-title mb-0 section-title-underline">Ajouter un Fournisseur</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('supplier.add_supplier') }}">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nom <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ name | default('') }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="site" class="form-label">Site web</label>
+                    <input type="text" class="form-control" id="site" name="site" value="{{ site | default('') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="mail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="mail" name="mail" value="{{ mail | default('') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Commentaire</label>
+                    <textarea class="form-control" id="comment" name="comment">{{ comment | default('') }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-success"><i class="bi bi-plus-circle"></i> Ajouter</button>
+                <a href="{{ url_for('supplier.supplier_list') }}" class="btn btn-secondary ms-2"><i class="bi bi-arrow-left"></i> Retour</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

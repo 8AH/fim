@@ -102,7 +102,7 @@
                                 {% if supplier_str.lower().startswith('http') or supplier_str.lower().startswith('www') %}
                                     <a href="{{ supplier_str if supplier_str.lower().startswith('http') else 'http://' ~ supplier_str }}" target="_blank" rel="noopener noreferrer">{{ supplier_str }}</a>
                                 {% else %}
-                                    {{ supplier_str }}
+                                    <a href="{{ url_for('supplier.supplier_list') }}?search={{ supplier_str|urlencode }}">{{ supplier_str }}</a>
                                 {% endif %}
                                 {% else %}
                                 <span class="text-muted">Non spécifié</span>

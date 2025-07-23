@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from config.database import get_connection_string
 from config.logging_config import setup_logging
 from src.models import db 
-from src.routes import blueprints 
+from src.routes import blueprints
 
 
 # Load environment variables
@@ -37,7 +37,7 @@ def inject_debug_mode():
 for blueprint in blueprints:
     if blueprint.name == 'reports': # Gérer l'url_prefix spécifique pour reports_bp
         app.register_blueprint(blueprint, url_prefix='/reports')
-    else: # Pour tous les autres blueprints, y compris ai_bp (qui a son propre url_prefix)
+    else:
         app.register_blueprint(blueprint)
 
 # Ces routes ont été migrées vers main_routes.py et admin_routes.py
