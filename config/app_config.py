@@ -1,5 +1,5 @@
 """
-Configuration de l'application pour JPJR.
+Configuration de l'application pour FIM.
 Gère les clés API et autres paramètres d'application via le fichier .env.
 """
 import os

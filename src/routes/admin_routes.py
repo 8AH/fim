@@ -206,6 +206,7 @@ def items_list():
         item_dict = {
             'id': item.id,
             'name': item.name,
+            'quantity': item.quantity,
             'is_borrowed': is_borrowed,
             'is_temporary': item.is_temporary,
             'borrower_name': borrower_name,  # Ajouter le nom de l'emprunteur
@@ -246,6 +247,7 @@ def add_item():
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
+        quantity = request.form.get('quantity', '1').strip() or '1'
         supplier_id_str = request.form.get('supplier_id')
         zone_id_str = request.form.get('zone_id')
         furniture_id_str = request.form.get('furniture_id')
@@ -339,17 +341,19 @@ def edit_item(item_id):
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
+        quantity = request.form.get('quantity', '1').strip()
         supplier_id_str = request.form.get('supplier_id')
         zone_id_str = request.form.get('zone_id')
         furniture_id_str = request.form.get('furniture_id')
         drawer_id_str = request.form.get('drawer_id')
 
-        if not name or not supplier_id_str or not zone_id_str or not furniture_id_str or not drawer_id_str:
+        if not name or not supplier_id_str or not zone_id_str or not furniture_id_str or not drawer_id_str or not quantity:
             flash("Tous les champs sont requis.", "danger")
             return redirect(url_for('admin.edit_item', item_id=item_id))
 
         try:
             item.name = name
+            item.quantity = int(quantity)
             item.supplier_id = int(supplier_id_str)
             item.zone_id = int(zone_id_str)
             item.furniture_id = int(furniture_id_str)

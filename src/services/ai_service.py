@@ -111,14 +111,19 @@ class AIService:
         payload = {
             'model': self.model_completion,
             'prompt': (
+                # "Tu es un assistant spécialisé dans l'extraction d'articles à partir de commandes vocales. "
+                # "Ton rôle est d'identifier les noms d'articles mentionnés dans la transcription et de les "
+                # "retourner sous forme de liste structurée. Ignore les mots de liaison, les articles (le, la, les) "
+                # "et tout ce qui n'est pas un nom d'article.\n"
+                # f'Voici la transcription d\'une commande vocale pour emprunter des articles: "{text}". '
+                # "Extrais les noms des articles mentionnés et retourne-les sous forme de liste JSON avec un ID unique "
+                # "et le nom de chaque article. Format attendu: [{\"id\": 1, \"name\": \"nom de l'article\"}, ...]. "
+                # "Ne retourne que le JSON, sans aucun autre texte."
                 "Tu es un assistant spécialisé dans l'extraction d'articles à partir de commandes vocales. "
-                "Ton rôle est d'identifier les noms d'articles mentionnés dans la transcription et de les "
-                "retourner sous forme de liste structurée. Ignore les mots de liaison, les articles (le, la, les) "
-                "et tout ce qui n'est pas un nom d'article.\n"
-                f'Voici la transcription d\'une commande vocale pour emprunter des articles: "{text}". '
-                "Extrais les noms des articles mentionnés et retourne-les sous forme de liste JSON avec un ID unique "
-                "et le nom de chaque article. Format attendu: [{\"id\": 1, \"name\": \"nom de l'article\"}, ...]. "
-                "Ne retourne que le JSON, sans aucun autre texte."
+                "Pour chaque article mentionné, extrais : le nom, la quantité (si précisée, sinon 1), et le fournisseur (si précisé, sinon null). "
+                "Retourne une liste JSON au format : [{\"id\": 1, \"name\": \"nom\", \"quantity\": 1, \"supplier\": \"nom fournisseur\" ou null}, ...]. "
+                "Ne retourne que le JSON, sans aucun autre texte.\n"
+                f'Voici la transcription d\'une commande vocale pour emprunter des articles: "{text}".'
             ),
             'stream': False
         }
@@ -130,9 +135,9 @@ class AIService:
         
         return self._parse_ollama_response(response.json())
     
-    def extract_items_with_locations(self, text, locations_context):
+    def extract_items_with_context(self, text, locations_context):
         """
-        Extrait les articles avec leurs emplacements à partir d'un texte
+        Extrait les articles avec leurs emplacements, quantité et fournisseur.
         
         Args:
             text (str): Texte transcrit
@@ -153,6 +158,7 @@ class AIService:
             return []
         
         # Préparer le contexte pour l'analyse
+        supplier_context = self._format_supplier_context(locations_context.get('suppliers', []))
         zones_context = self._format_zones_context(locations_context.get('zones', []))
         furniture_context = self._format_furniture_context(locations_context.get('furniture', []))
         drawers_context = self._format_drawers_context(locations_context.get('drawers', []))
@@ -160,12 +166,14 @@ class AIService:
         payload = {
             'model': self.model_completion,
             'prompt': (
-                "Tu es un assistant spécialisé dans l'extraction d'articles et de leurs emplacements "
+                "Tu es un assistant spécialisé dans l'extraction d'articles, de leur quantité, de leur fournisseur et de leurs emplacements "
                 "à partir de commandes vocales. Ton rôle est d'identifier les noms d'articles mentionnés "
-                "dans la transcription et de les associer aux emplacements existants (zone, meuble, tiroir) "
+                ", leur quantité et leur fournisseur dans la transcription et de les associer aux emplacements existants (zone, meuble, tiroir) et aux fournisseurs existants"
                 "en fonction du contexte fourni. Utilise ton jugement pour faire les meilleures associations "
                 "possibles entre ce qui est dit et les emplacements disponibles.\n"
                 f'Voici la transcription d\'une commande vocale pour ajouter des articles à l\'inventaire: "{text}". '
+                f'\n\nVoici le contexte des fournisseurs existants:\n\nSUPPLIERS:{supplier_context}\n\n'
+                "Examine les fournisseurs mentionnés dans la transcription et associe-les aux fournisseurs existants. "
                 f"\n\nVoici le contexte des emplacements existants:\n\nZONES:\n{zones_context}\n\nMEUBLES:\n{furniture_context}\n\nTIROIRS/NIVEAUX:\n{drawers_context}\n\n"
                 "Extrais les noms des articles mentionnés et associe-les aux emplacements existants. "
                 "Retourne le résultat sous forme de liste JSON avec le format suivant:\n"
@@ -211,7 +219,7 @@ class AIService:
             ]
             for item in items_list:
                 inventory_context_parts.append(
-                    f"- Nom: {item.name}, Fournisseur : {item.supplier}, Emplacement: {item.location_info or 'N/A'}"
+                    f"- Nom: {item.name}, Quantité: {item.quantity}, Fournisseur: {getattr(item, 'supplier_rel', None) and item.supplier_rel.name or 'N/A'}, Emplacement: {item.location_info or 'N/A'}"
                 )
             inventory_context = "\n".join(inventory_context_parts)
         
@@ -230,10 +238,10 @@ class AIService:
             logger.error(f"Erreur lors de l'appel à l'API Ollama (Chat): {e}")
             raise Exception(f"Erreur de communication avec l'API Ollama: {e}")
     
-    def process_audio_file(self, audio_file, audio_mime_type='audio/webm', is_inventory=False, locations_context=None, temporary_only=False):
+    def process_audio_file(self, audio_file, audio_mime_type='audio/webm', is_inventory=False, locations_context=None):
         """
         Traite un fichier audio et en extrait les informations (articles ou articles+emplacements)
-        Utilise faster-whisper-server pour la transcription.
+        Utilise speaches pour la transcription.
         Args:
             audio_file: Fichier audio à traiter
             is_inventory (bool): Si True, extrait les articles avec leurs emplacements
@@ -262,7 +270,7 @@ class AIService:
                 audio_path = temp_file.name
                 audio_file.save(audio_path)
 
-            # Transcription via faster-whisper-server
+            # Transcription via speaches
             transcription = self.transcribe_audio(audio_path, audio_mime_type)
 
             # Nettoyer le fichier temporaire
@@ -273,7 +281,7 @@ class AIService:
             if is_inventory:
                 if not locations_context:
                     raise ValueError("Le contexte des emplacements est requis pour l'extraction d'inventaire.")
-                return self.extract_items_with_locations(transcription, locations_context)
+                return self.extract_items_with_context(transcription, locations_context)
             else:
                 return self.extract_items_from_text(transcription)
         except Exception as e:
@@ -327,6 +335,8 @@ class AIService:
                 for item in items:
                     if 'name' in item and item['name']:
                         item['name'] = item['name'][0].upper() + item['name'][1:] if len(item['name']) > 1 else item['name'].upper()
+                        item['quantity'] = int(item.get('quantity', 1)) if str(item.get('quantity', '')).isdigit() else 1
+                        item['supplier'] = item.get('supplier') if item.get('supplier') else None
                 
                 # Vérifier que tous les items ont les champs requis
                 valid_items = []
@@ -384,6 +394,19 @@ class AIService:
             logger.error(f"Erreur lors de l'analyse de la réponse Ollama: {e}")
             return [] if not return_str else ""
     
+
+    def _format_supplier_context(self, suppliers):
+        """
+        Formate les données de fournisseur pour le contexte
+        """
+        if not suppliers:
+            logger.warning("Aucun fournisseur fourni dans le contexte")
+            return "Aucun fournisseur disponible"
+            
+        formatted = '\n'.join([f"{supplier['id']}: {supplier['name']}" for supplier in suppliers])
+        logger.debug(f"Contexte de fournisseurs formaté: {formatted}")
+        return formatted
+
     def _format_zones_context(self, zones):
         """
         Formate les données de zone pour le contexte

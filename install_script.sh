@@ -1,26 +1,26 @@
 #!/bin/bash
 
 # Author: 8AH
-# This script is designed to install "JPJR" components on a fresh Ubuntu system. It includes Docker, NVIDIA Container Toolkit, Homebrew, Oxker, and Git.
+# This script is designed to install "FIM" components on a fresh Ubuntu system. It includes Docker, NVIDIA Container Toolkit, Homebrew, Oxker, and Git.
 # It uses dialog for a user-friendly interface and allows for both full and custom installations.
 
 echo " 
- █████   █████  ██   ██         ██          ██ ██████       ██ ██████  
-██   ██ ██   ██ ██   ██        ██           ██ ██   ██      ██ ██   ██ 
- █████  ███████ ███████       ██            ██ ██████       ██ ██████  
-██   ██ ██   ██ ██   ██      ██        ██   ██ ██      ██   ██ ██   ██ 
- █████  ██   ██ ██   ██     ██          █████  ██       █████  ██   ██ 
-                                                                       
+ █████   █████  ██   ██         ██     ███████ ██ ███    ███ 
+██   ██ ██   ██ ██   ██        ██      ██      ██ ████  ████ 
+ █████  ███████ ███████       ██       █████   ██ ██ ████ ██ 
+██   ██ ██   ██ ██   ██      ██        ██      ██ ██  ██  ██ 
+ █████  ██   ██ ██   ██     ██         ██      ██ ██      ██ 
+                                                             
                                                                        "
 
-echo "Bienvenue dans le script d'installation de JPJR.
+echo "Bienvenue dans le script d'installation de FIM.
 
 Ce script est destiné uniquement à Ubuntu ou aux systèmes basés sur Ubuntu et installera dialog et curl s'ils ne sont pas présents.
 
-Pour que JPJR fonctionne, il installera Docker, NVIDIA Container Toolkit, Homebrew, Oxker et Git (personnalisable).
+Pour que FIM fonctionne, il installera Docker, NVIDIA Container Toolkit, Homebrew, Oxker et Git (personnalisable).
 
-Il clonera également le dépôt JPJR et le configurera pour vous.
-Il extraira les modèles nécessaires pour Ollama et Speaches.
+Il clonera également le dépôt FIM et le configurera pour vous.
+Il extraira les modèles nécessaires pour ollama et speaches.
 Veuillez vous assurer de disposer d'une connexion Internet stable avant de continuer.
 
 Les privilèges sudo seront nécessaires pour installer les paquets et apporter des modifications au système.
@@ -46,6 +46,7 @@ if command -v dialog &> /dev/null
         sudo apt update && sudo apt install -y dialog
 fi
 
+# Check and install curl if not present (should be)
 if command -v curl &> /dev/null
     then
         echo "curl is already installed."
@@ -149,25 +150,10 @@ install_oxker() {
     fi
 }
 
-# Function to install Git
-install_git() {
-    if command -v git &> /dev/null
-        then
-            dialog --title "Installation terminée" --msgbox "Git est déjà installé." 6 60
-        else
-            echo "Installing Git..."
-            sudo apt-get install -y git
-            echo "Git installed successfully."
-    fi
-    
-}
-
 # Function to clone repository and set up
 setup_repository() {
-    echo "Cloning repository and setting up..."
-    git clone https://github.com/8AH/jpjr.git
     echo "Building Docker images..."
-    docker compose -f jpjr/docker/docker-compose.yml up -d
+    docker compose -f FIM/docker/docker-compose.yml up -d
     
     # Download models for Ollama and Speaches using curl
     echo "Setting up models, it may take a while..."
@@ -178,24 +164,24 @@ setup_repository() {
     echo "Repository setup completed."
 }
 
-rebuild_jpjr() {
-    echo "Rebuilding JPJR..."
+rebuild_fim() {
+    echo "Rebuilding FIM..."
     docker compose -f ./docker/docker-compose.yml down
-    docker compose -f ./docker/docker-compose.yml build jpjr
+    docker compose -f ./docker/docker-compose.yml build fim
     docker compose -f ./docker/docker-compose.yml up -d
     docker image prune -f
-    echo "JPJR rebuilt successfully."
+    echo "FIM rebuilt successfully."
 }
 
 
 display_main_menu() {
     TEMP_FILE=$(mktemp /tmp/dialog.XXXXXX)
 
-    dialog --clear --backtitle "Installation JPJR" \
+    dialog --clear --backtitle "Installation FIM" \
         --menu "Choisissez une option d'installation:" 15 60 2 \
         1 "Tout installer" \
         2 "Installation personnalisée" \
-        3 "Rebuild JPJR (intégrer les changements après modification du code)" \
+        3 "Rebuild FIM (intégrer les changements après modification du code)" \
         4 "Quitter" \
         2> "$TEMP_FILE"
 
@@ -208,18 +194,16 @@ display_main_menu() {
             install_docker
             install_nvidia_container_toolkit
             install_oxker
-            install_git
             setup_repository
-            oxker
             dialog --title "Installation terminée" --msgbox "Toutes les installations sont terminées." 6 60
             ;;
         2)
             display_custom_menu
             ;;
         3)
-            dialog --infobox "Rebuild de JPJR..." 3 50
-            rebuild_jpjr
-            dialog --title "Rebuild terminé" --msgbox "JPJR a été reconstruit avec succès." 6 60
+            dialog --infobox "Rebuild de FIM..." 3 50
+            rebuild_fim
+            dialog --title "Rebuild terminé" --msgbox "FIM a été reconstruit avec succès." 6 60
             ;;
         4)
             ;;
@@ -230,14 +214,13 @@ display_main_menu() {
 display_custom_menu() {
     TEMP_FILE=$(mktemp /tmp/dialog.XXXXXX)
 
-    dialog --clear --backtitle "Installation JPJR" \
+    dialog --clear --backtitle "Installation FIM" \
         --title "Installation personnalisée" \
         --checklist "Utilisez ESPACE pour sélectionner/désélectionner les composants à installer:" 20 70 8 \
         "1" "Docker" OFF \
         "2" "NVIDIA Container Toolkit" OFF \
         "3" "Oxker" OFF \
-        "4" "Git" OFF \
-        "5" "Cloner et configurer le repository" OFF \
+        "4" "Configurer le repository" OFF \
         2> "$TEMP_FILE"
 
     choices=$(cat "$TEMP_FILE")
@@ -260,10 +243,6 @@ display_custom_menu() {
                     install_oxker
                     ;;
                 4)
-                    dialog --infobox "Installation de Git..." 3 40
-                    install_git
-                    ;;
-                5)
                     dialog --infobox "Configuration du repository..." 3 40
                     setup_repository
                     ;;

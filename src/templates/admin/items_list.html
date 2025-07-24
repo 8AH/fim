@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Liste des Articles - Administration{% endblock %}
+{% block title %}Liste des articles - Administration{% endblock %}
 
 {% block content %}
 <div class="container mt-4 mb-4">
     <div class="row">
         <div class="col-md-12 mb-4 d-flex justify-content-between align-items-center">
-            <h2 class="section-title-underline mb-0"><i class="bi bi-list-ul me-2"></i>Liste des Articles</h2>
+            <h2 class="section-title-underline mb-0"><i class="bi bi-list-ul me-2"></i>Liste des articles</h2>
             <div>
                 <a href="{{ url_for('admin.add_item') }}" class="btn btn-success">
                     <i class="bi bi-plus-circle"></i> Ajouter un article
@@ -15,7 +15,7 @@
                     <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
                 </a>
                 <button type="button" id="deleteUnborrowedTempItemsBtn" class="btn btn-outline-warning ms-2">
-                    <i class="bi bi-eraser"></i> Suppr. Temp. Non Empruntés
+                    <i class="bi bi-eraser"></i> Suppr. temp. non empruntés
                 </button>
             </div>
         </div>
@@ -54,6 +54,7 @@
                     <thead>
                         <tr>
                             <th>Nom</th>
+                            <th>Quantité</th>
                             <th>Zone</th>
                             <th>Meuble</th>
                             <th>Tiroir/Niveau</th>
@@ -67,6 +68,9 @@
                         <tr {% if item.is_temporary %}class="temporary-item-row"{% endif %}>
                             <td>
                                 {{ item.name }}
+                            </td>
+                            <td>
+                                {{ item.quantity }}
                             </td>
                             <td>
                                 {% if item.is_temporary %}

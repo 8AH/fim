@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Ajouter un Article - Administration{% endblock %}
+{% block title %}Ajouter un article - Administration{% endblock %}
 
 {% block content %}
 <div class="container mt-4 mb-4">
@@ -13,6 +13,11 @@
                 <div class="mb-3">
                     <label for="name" class="form-label">Nom de l'article <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="name" name="name" value="{{ name | default('') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantité <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" value="{{ quantity | default(1) }}" min="1" required>
                 </div>
 
                 <div class="mb-3">

@@ -32,7 +32,7 @@ def voice_recognition():
         current_app.logger.info(f"Utilisation du suffixe '{ai_service.getFileExtension(audio_mime_type)}' pour le mimeType '{audio_mime_type}' (base: '{audio_mime_type.split(';')[0] if ';' in audio_mime_type else audio_mime_type}')")
         
         # Utiliser le service AI pour traiter l'audio
-        items = ai_service.process_audio_file(audio_file, audio_mime_type=audio_mime_type, temporary_only=temporary_only)
+        items = ai_service.process_audio_file(audio_file, audio_mime_type=audio_mime_type)
         
         # Log détaillé du résultat pour le débogage
         current_app.logger.info(f"Reconnaissance vocale réussie: {len(items)} articles identifiés")

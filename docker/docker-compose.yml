@@ -1,10 +1,10 @@
 services:
-  jpjr:
+  fim:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: 8ah/jpjr
-    container_name: jpjr
+    image: 8ah/fim:latest
+    container_name: fim
     env_file:
       - ../.env
     volumes:
@@ -13,7 +13,7 @@ services:
       - "443:443"
     restart: unless-stopped
     networks:
-      jpjr_network:
+      fim_network:
         ipv4_address: 172.10.0.10
 
   ollama:
@@ -33,7 +33,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     networks:
-      jpjr_network:
+      fim_network:
         ipv4_address: 172.10.0.20
 
   speaches:
@@ -58,7 +58,7 @@ services:
               count: all
               capabilities: [gpu]
     networks:
-      jpjr_network:
+      fim_network:
         ipv4_address: 172.10.0.30
 
 volumes:
@@ -66,7 +66,7 @@ volumes:
   ollama:
 
 networks:
-  jpjr_network:
+  fim_network:
     driver: bridge
     ipam:
       driver: default

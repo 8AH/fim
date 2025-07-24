@@ -35,6 +35,7 @@ def get_items():
         results.append({
             'id': item.id,
             'name': item.name,
+            'quantity': item.quantity,
             'supplier': item.supplier_id,
             'zone_id': item.zone_id,
             'furniture_id': item.furniture_id,
@@ -61,6 +62,7 @@ def get_item(item_id):
     result = {
         'id': item.id,
         'name': item.name,
+        'quantity': item.quantity,
         'supplier_id': item.supplier_id,
         'zone_id': item.zone_id,
         'furniture_id': item.furniture_id,
@@ -100,12 +102,13 @@ def add_items_batch():
     try:
         for item_data in items:
             # Vérifier que toutes les informations requises sont présentes
-            if not all(key in item_data for key in ['name', 'zone_id', 'furniture_id', 'drawer_id']):
+            if not all(key in item_data for key in ['name', 'zone_id', 'furniture_id', 'drawer_id', 'quantity']):
                 continue
             
             # Créer un nouvel article
             new_item = Item(
                 name=item_data['name'],
+                quantity=item_data['quantity'],
                 is_temporary=False,  # Articles ajoutés par batch sont toujours permanents
                 zone_id=item_data['zone_id'],
                 furniture_id=item_data['furniture_id'],
@@ -142,6 +145,7 @@ def add_item():
     
     data = request.json
     name = data.get('name', '').strip()
+    quantity = data.get('quantity', 1)
     is_temporary = data.get('is_temporary', False)
     
     if not name:
@@ -232,6 +236,7 @@ def add_item():
             # Créer l'article permanent avec le modèle unifié
             new_item = Item(
                 name=name,
+                quantity=int(quantity),  # Assurer que la quantité est un entier
                 is_temporary=False,
                 supplier_id=supplier_id,
                 # Clés étrangères pour les emplacements
@@ -252,6 +257,7 @@ def add_item():
                 'item': {
                     'id': new_item.id,
                     'name': new_item.name,
+                    'quantity': new_item.quantity,
                     'supplier_id': new_item.supplier_id,
                     'zone_id': new_item.zone_id,
                     'furniture_id': new_item.furniture_id,

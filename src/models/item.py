@@ -7,6 +7,7 @@ class Item(db.Model):
     __tablename__ = 'item'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
+    quantity = db.Column(db.Integer, default=1, nullable=False)
     
     # Flag pour distinguer les articles temporaires et permanents
     is_temporary = db.Column(db.Boolean, default=False, nullable=False)

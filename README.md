@@ -1,161 +1,34 @@
 # FIM / Fablab Inventory Manager
 
-Sur une idée originale des **Frères Poulain**.
+*Basé sur l'outil [JPJR](https://github.com/lfpoulain/jpjr) des **Frères Poulain**.*
 
-```
-Version modifiée pour utiliser Ollama (llama3.1:8b) et speaches en lieu et place d'OpenAI.
-```
+FIM est une application web développée avec Flask pour gérer l'inventaire d'un fablab. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via [speaches](https://github.com/speaches-ai/speaches/).
 
-JPJR est une petite application web développée avec Flask pour gérer un inventaire d'objets pour un fablab. Elle intègre une interface d'administration, une API JSON et des commandes vocales optionnelles via speaches.
+Une carte graphique NVIDIA supportant CUDA est nécessaire pour faire tourner les fonctionnalités d'IA (chat et reconnaissance vocale).
 
 ## 🚀 Démarrage Rapide
 
-### 1. Installation locale (Python)
+### 1. Script d'installation (Ubuntu) - Recommandé pour les débutants
 
-1.  Créez et activez un environnement virtuel Python :
-    ```bash
-    # Créer l'environnement (une seule fois)
-    python -m venv venv
+DISCLAIMER : Le script a été testé sur un Ubuntu Desktop 24.10. D'autres distributions (Ubuntu-based) ou versions pourraient fonctionner mais c'est à vos risques et périls.
 
-    # Activer l'environnement (pour chaque nouvelle session de terminal)
-    # Sur Windows :
-    venv\Scripts\activate
-    # Sur macOS/Linux :
-    source venv/bin/activate
-    ```
-2.  Installez les dépendances :
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  Créez un fichier `.env` à partir de `.env.example` et configurez les variables pour la base de données et l'API (voir `docs/documentation_technique.md` pour plus de détails).
-4.  Lancez l'application :
-    ```bash
-    python -m src.app
-    ```
+Clonez le dépôt avec git et rendez-vous dans le dossier local :
 
-Par défaut, l'application utilise SQLite. Vous pouvez passer à PostgreSQL en définissant `DB_TYPE=postgresql` dans votre fichier `.env`.
-<!-- 
----
+```batch 
+git clone https://github.com/8AH/fim.git
+cd fim
+bash ./install_script.sh
+```
+
+De là, le script installera les premières dépendansces (curl et dialog) et vous permet d'installer toutes les dépendances pour le logiciel (Docker, Pilotes Graphiques NVIDIA, NVIDIA Container Toolkit), lancera les containers et téléchargera les modèles pour les fonctionnalités IA.
+
+Il téléchargera aussi le gestionnaire de paquets [Homebrew ](https://brew.sh/) ainsi que [oxker](https://github.com/mrjackwills/oxker) pour administrer les containers docker.
+
+Il existe aussi une configuration personnalisée qui permet de choisir les composants à installer.
 
 ### 2. Utilisation avec Docker Compose
 
-#### a) Avec SQLite (par défaut)
-
-Créez un fichier `docker-compose.yml` à la racine du projet avec le contenu suivant :
-
-```yaml
-services:
-  app:
-    image: ghcr.io/lfpoulain/jpjr:latest
-    container_name: jpjr_app
-    env_file:
-      - .env
-    volumes:
-      - ./data:/app/data
-    ports:
-      - "5001:5001"
-    restart: unless-stopped
-```
-
-Créez un fichier `.env` à la racine du projet avec par exemple :
-
-```env
-# Configuration de la base de données
-# Choisissez le type de base de données : 'postgresql' ou 'sqlite'
-DB_TYPE=sqlite
-
-# --- Paramètre pour SQLite (ignoré si DB_TYPE=postgresql) ---
-# Nom du fichier de la base de données SQLite. Si non défini, 'jpjr.db' sera utilisé par défaut.
-SQLITE_DB_NAME=jpjr.db
-
-# --- Clés d'API ---
-# Clé API pour les services OpenAI (Whisper pour la transcription, GPT pour le chat)
-OPENAI_API_KEY='sk-proj-YOUR_OPENAI_API_KEY'
-
-# --- Sécurité Flask ---
-# Clé secrète utilisée par Flask pour signer les sessions. Doit être une chaîne de caractères longue et aléatoire.
-# Vous pouvez en générer une avec : python -c 'import secrets; print(secrets.token_hex(16))'
-SECRET_KEY='your_very_secret_flask_key'
-
-# --- Mode Débogage Flask ---
-# Mettre à 1 pour activer le mode débogage de Flask (rechargement automatique, logs détaillés).
-# Mettre à 0 pour le mode production.
-FLASK_DEBUG=0
-```
-
-Lancez l'application :
-```bash
-docker-compose up -d
-```
-
-#### b) Avec PostgreSQL
-
-Créez un fichier `docker-compose.yml` à la racine du projet avec le contenu suivant :
-
-```yaml
-services:
-  app:
-    image: ghcr.io/lfpoulain/jpjr:latest
-    container_name: jpjr_app
-    env_file:
-      - .env
-    ports:
-      - "5001:5001"
-    depends_on:
-      - db
-    restart: unless-stopped
-
-  db:
-    image: postgres:16
-    container_name: jpjr_db
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-```
-
-Créez un fichier `.env` à la racine du projet avec par exemple :
-
-```env
-# Configuration de la base de données
-# Choisissez le type de base de données : 'postgresql' ou 'sqlite'
-DB_TYPE=postgresql
-
-# --- Paramètres pour PostgreSQL (ignorés si DB_TYPE=sqlite) ---
-DB_HOST=db # Si utilisation de docker, mettre 'db' pour le conteneur PostgreSQL
-DB_NAME=jpjr_db
-DB_USER=admin
-DB_PASSWORD=your_secure_password
-DB_PORT=5432
-
-# --- Clés d'API ---
-# Clé API pour les services OpenAI (Whisper pour la transcription, GPT pour le chat)
-OPENAI_API_KEY='sk-proj-YOUR_OPENAI_API_KEY'
-
-# --- Sécurité Flask ---
-# Clé secrète utilisée par Flask pour signer les sessions. Doit être une chaîne de caractères longue et aléatoire.
-# Vous pouvez en générer une avec : python -c 'import secrets; print(secrets.token_hex(16))'
-SECRET_KEY='your_very_secret_flask_key'
-
-# --- Mode Débogage Flask ---
-# Mettre à 1 pour activer le mode débogage de Flask (rechargement automatique, logs détaillés).
-# Mettre à 0 pour le mode production.
-FLASK_DEBUG=0
-```
-
-Lancez l'ensemble :
-```bash
-docker-compose up -d
-``` -->
+*En cours de rédaction*
 
 ---
 
@@ -166,7 +39,7 @@ docker-compose up -d
 *   📦 **Flexibilité des Articles : Conventionnels & Temporaires**
     *   **Articles Conventionnels :** Vos objets permanents, soigneusement rangés avec un emplacement fixe (ex: "Zone: Bureau, Meuble: Étagère").
     *   **Articles Temporaires :** Pour les besoins du moment ! Créez-les à la volée, souvent par une simple commande vocale (ex: "piles").
-*   🔌 **API JSON Robuste :** Intégrez JPJR à d'autres outils ou services grâce à des points de terminaison complets pour les articles, prêts, emplacements et services d'IA.
+*   🔌 **API JSON Robuste :** Intégrez FIM à d'autres outils ou services grâce à des points de terminaison complets pour les articles, prêts, emplacements et services d'IA.
 *   🎙️ **Commandes Vocales Intelligentes (propulsées par 4o Transcribe et GPT-4o-mini) :**
     *   **Depuis le Tableau de Bord (Dashboard) :**
         *   ⚡ **Ajout Rapide "Temporaire" :** Dictez et ajoutez instantanément des articles sans emplacement prédéfini.
