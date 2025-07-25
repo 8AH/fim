@@ -5,18 +5,26 @@
 {% block content %}
 <div class="container mt-4 mb-4">
     <div class="row">
-        <div class="col-md-12 mb-4 d-flex justify-content-between align-items-center">
-            <h2 class="section-title-underline mb-0"><i class="bi bi-truck me-2"></i>Gestion des fournisseurs</h2>
+        <div class="col-12 mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
+                <h2 class="section-title-underline mb-3 mb-md-0"><i class="bi bi-truck me-2"></i>Gestion des fournisseurs</h2>
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="{{ url_for('supplier.add_supplier') }}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Ajouter un fournisseur
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Liste des fournisseurs</span>
-            <form method="GET" action="{{ url_for('supplier.supplier_list') }}" class="d-flex ms-auto" style="max-width: 300px;">
-                <input class="form-control form-control-sm me-2" type="search" name="search" placeholder="Rechercher par nom..." aria-label="Rechercher" value="{{ search_term if search_term }}">
-                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
-            </form>
-            <a href="{{ url_for('supplier.add_supplier') }}" class="btn btn-success ms-2"><i class="bi bi-plus-circle"></i> Ajouter un fournisseur</a>
+        <div class="card-header">
+            <div class="d-flex flex-column flex-md-row align-items-md-center">
+                <span class="fw-bold me-md-3 mb-2 mb-md-0">Liste des fournisseurs</span>
+                <form method="GET" action="{{ url_for('supplier.supplier_list') }}" class="d-flex ms-md-auto w-100" style="max-width: 100%; max-width: 300px;">
+                    <input class="form-control form-control-sm me-2" type="search" name="search" placeholder="Rechercher par nom..." aria-label="Rechercher" value="{{ search_term if search_term }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+                </form>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">

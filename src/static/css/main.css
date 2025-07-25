@@ -880,12 +880,26 @@ body.has-mobile-nav {
         align-items: stretch !important;
     }
 
+    .d-grid.gap-2.d-md-block .btn {
+    margin-bottom: .5rem;
+    }
+
     #items_list .btn-group {
         width: 100%;
         margin-bottom: 0.5rem;
     }
 
     #items_list form {
+        max-width: 100% !important;
+        margin-top: 0.5rem;
+    }
+
+    #supplier_list .d-flex.align-items-center {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    #supplier_list form {
         max-width: 100% !important;
         margin-top: 0.5rem;
     }

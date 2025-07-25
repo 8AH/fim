@@ -5,29 +5,30 @@
 {% block content %}
 <div class="container mt-4 mb-4">
     <div class="row">
-        <div class="col-md-12 mb-4 d-flex justify-content-between align-items-center">
-            <h2 class="section-title-underline mb-0"><i class="bi bi-list-ul me-2"></i>Liste des articles</h2>
-            <div>
-                <a href="{{ url_for('admin.add_item') }}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Ajouter un article
-                </a>
-                <a href="{{ url_for('reports.generate_all_items_pdf') }}" class="btn btn-info ms-2" target="_blank">
-                    <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
-                </a>
-                <button type="button" id="deleteTempItemsBtn" class="btn btn-outline-warning ms-2">
-                    <i class="bi bi-eraser"></i> Suppr. temp. non empruntés
-                </button>
+        <div class="col-12 mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
+                <h2 class="section-title-underline mb-3 mb-md-0"><i class="bi bi-list-ul me-2"></i>Liste des articles</h2>
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="{{ url_for('admin.add_item') }}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Ajouter un article
+                    </a>
+                    <a href="{{ url_for('reports.generate_all_items_pdf') }}" class="btn btn-info" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
+                    </a>
+                    <button type="button" id="deleteTempItemsBtn" class="btn btn-outline-warning">
+                        <i class="bi bi-eraser"></i> Suppr. temp. non empruntés
+                    </button>
+                </div>
             </div>
         </div>
     </div>
     <div class="card mb-4">
         <div class="card-header">
-            
-            <div class="d-flex align-items-center">
-                <div class="btn-group me-3" role="group">
+            <div class="d-flex flex-column flex-md-row align-items-md-center">
+                <div class="btn-group me-md-3 mb-2 mb-md-0" role="group">
                     <a href="{{ url_for('admin.items_list', filter='all') }}" 
                        class="btn btn-sm {{ 'btn-secondary' if current_filter == 'all' else 'btn-outline-secondary' }}">
-                        Tous les articles
+                        Tous
                     </a>
                     <a href="{{ url_for('admin.items_list', filter='conventional') }}" 
                        class="btn btn-sm {{ 'btn-secondary' if current_filter == 'conventional' else 'btn-outline-secondary' }}">
@@ -38,10 +39,10 @@
                         Temporaires
                     </a>
                 </div>
-                <span class="badge" style="background-color: var(--theme-bg-content-card); color: var(--theme-text-secondary);">{{ items_count }} article(s)</span>
+                <span class="badge align-self-start mb-2 mb-md-0" style="background-color: var(--theme-bg-content-card); color: var(--theme-text-secondary);">{{ items_count }} article(s)</span>
                 
                 <!-- Search Form -->
-                <form method="GET" action="{{ url_for('admin.items_list') }}" class="d-flex ms-auto" style="max-width: 300px;">
+                <form method="GET" action="{{ url_for('admin.items_list') }}" class="d-flex ms-md-auto w-100" style="max-width: 100%; max-width: 300px;">
                     <input type="hidden" name="filter" value="{{ current_filter }}">
                     <input class="form-control form-control-sm me-2" type="search" name="search" placeholder="Rechercher par nom..." aria-label="Rechercher" value="{{ search_term if search_term }}">
                     <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>

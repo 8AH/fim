@@ -47,6 +47,10 @@
     bottom: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     border: 2px solid var(--theme-bg-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0; /* Empêche le bouton de s'étirer */
 }
 
 .mobile-nav-item.fab i {
