@@ -168,13 +168,13 @@ class AIService:
             'prompt': (
                 "Tu es un assistant spécialisé dans l'extraction d'articles, de leur quantité, de leur fournisseur et de leurs emplacements "
                 "à partir de commandes vocales. Ton rôle est d'identifier les noms d'articles mentionnés "
-                ", leur quantité et leur fournisseur dans la transcription et de les associer aux emplacements existants (zone, meuble, tiroir) et aux fournisseurs existants"
+                ", leur quantité (si non spécifié, la quantité est de 1) et leur fournisseur dans la transcription et de les associer aux emplacements existants (zone, meuble, tiroir) et aux fournisseurs existants"
                 "en fonction du contexte fourni. Utilise ton jugement pour faire les meilleures associations "
                 "possibles entre ce qui est dit et les emplacements disponibles.\n"
                 f'Voici la transcription d\'une commande vocale pour ajouter des articles à l\'inventaire: "{text}". '
                 f'\n\nVoici le contexte des fournisseurs existants:\n\nSUPPLIERS:{supplier_context}\n\n'
                 "Examine les fournisseurs mentionnés dans la transcription et associe-les aux fournisseurs existants. "
-                f"\n\nVoici le contexte des emplacements existants:\n\nZONES:\n{zones_context}\n\nMEUBLES:\n{furniture_context}\n\nTIROIRS/NIVEAUX:\n{drawers_context}\n\n"
+                f'\n\nVoici le contexte des emplacements existants:\n\nZONES:\n{zones_context}\n\nMEUBLES:\n{furniture_context}\n\nTIROIRS/NIVEAUX:\n{drawers_context}\n\n'
                 "Extrais les noms des articles mentionnés et associe-les aux emplacements existants. "
                 "Retourne le résultat sous forme de liste JSON avec le format suivant:\n"
                 "[{\"name\": \"nom de l'article\", \"quantity\": 1, \"supplier_id\": id_fournisseur, \"zone_id\": id_zone, \"furniture_id\": id_meuble, \"drawer_id\": id_tiroir}, ...]\n\n"

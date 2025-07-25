@@ -991,6 +991,7 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 <div class="row fw-bold gx-2">
                     <div class="col-auto" style="width: 50px;"><small>Incl.</small></div>
                     <div class="col-md-3"><small>Nom de l'article</small></div>
+                    <div class="col-md-1"><small>Qté</small></div>
                     <div class="col-md-2"><small>Fournisseur</small></div>
                     <div class="col-md-2"><small>Zone</small></div>
                     <div class="col-md-2"><small>Meuble</small></div>
@@ -1014,6 +1015,9 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                         </div>
                         <div class="col-12 col-md-3 mb-2 mb-md-0">
                             <input type="text" class="form-control form-control-sm item-name-input" value="${currentItem.name}" id="item_name_${index}" data-index="${index}" placeholder="Nom">
+                        </div>
+                        <div class="col-12 col-md-1 mb-2 mb-md-0">
+                            <input type="number" class="form-control form-control-sm item-quantity-input" value="${currentItem.quantity}" id="item_quantity_${index}" data-index="${index}" min="1">
                         </div>
                         <div class="col-12 col-md-2 mb-2 mb-md-0">
                             <select class="form-select form-select-sm item-location-select item-supplier-select" id="item_supplier_${index}" data-index="${index}" data-type="supplier">
@@ -1167,6 +1171,17 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 this.recognizedItems[index].supplier_id = supplierId;
             });
         });
+
+        // Ajouter des écouteurs pour les champs de quantité
+        document.querySelectorAll('[id^="item_quantity_"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const index = e.target.dataset.index;
+                const quantity = e.target.value;
+                
+                // Mettre à jour l'objet recognizedItems
+                this.recognizedItems[index].quantity = quantity;
+            });
+        });
     }
 
     addItemRowListeners() {
@@ -1214,7 +1229,8 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
         const itemsToAdd = itemsToProcess.filter(item => {
             const isValid = item.name && item.name.trim() !== '' && 
                             item.supplier_id &&
-                            item.zone_id && item.furniture_id && item.drawer_id;
+                            item.zone_id && item.furniture_id && item.drawer_id &&
+                            item.quantity && item.quantity > 0;
             if (!isValid && (item.included !== false)) { // Notifier seulement si l'utilisateur voulait l'inclure
                 notificationManager.warning(`L'article "${item.name || 'Sans nom'}" est incomplet. Veuillez vérifier son nom et sa localisation.`);
             }
