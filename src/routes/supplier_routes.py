@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from src.models import db
 from src.models.supplier import Supplier
 
@@ -6,6 +6,10 @@ supplier_bp = Blueprint('supplier', __name__, url_prefix='/admin/suppliers')
 
 @supplier_bp.route('/')
 def supplier_list():
+    if request.args.get('json') == 'true':
+        suppliers = db.session.query(Supplier).order_by(Supplier.name).all()
+        return jsonify([{'id': s.id, 'name': s.name} for s in suppliers])
+        
     search_term = request.args.get('search', '').strip()
     query = db.session.query(Supplier)
     if search_term:

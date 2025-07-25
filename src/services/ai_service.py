@@ -148,7 +148,7 @@ class AIService:
         """
         
         logger.debug(f"Texte transcrit pour extraction d'inventaire: '{text}'")
-        logger.debug(f"Contexte des emplacements reçu: {locations_context}")
+        logger.debug(f"Contexte reçu: {locations_context}")
         
         if not text or len(text.strip()) < 3:
             logger.info("Texte trop court ou vide, aucun article à extraire")
@@ -177,7 +177,7 @@ class AIService:
                 f"\n\nVoici le contexte des emplacements existants:\n\nZONES:\n{zones_context}\n\nMEUBLES:\n{furniture_context}\n\nTIROIRS/NIVEAUX:\n{drawers_context}\n\n"
                 "Extrais les noms des articles mentionnés et associe-les aux emplacements existants. "
                 "Retourne le résultat sous forme de liste JSON avec le format suivant:\n"
-                "[{\"name\": \"nom de l'article\", \"zone_id\": id_zone, \"furniture_id\": id_meuble, \"drawer_id\": id_tiroir}, ...]\n\n"
+                "[{\"name\": \"nom de l'article\", \"quantity\": 1, \"supplier_id\": id_fournisseur, \"zone_id\": id_zone, \"furniture_id\": id_meuble, \"drawer_id\": id_tiroir}, ...]\n\n"
                 "Assure-toi que les IDs correspondent bien aux emplacements existants dans le contexte fourni. "
                 "Ne retourne que le JSON, sans aucun autre texte."
             ),
@@ -278,12 +278,10 @@ class AIService:
                 os.unlink(audio_path)
 
             # Extraction des articles
-            if is_inventory:
-                if not locations_context:
-                    raise ValueError("Le contexte des emplacements est requis pour l'extraction d'inventaire.")
-                return self.extract_items_with_context(transcription, locations_context)
-            else:
-                return self.extract_items_from_text(transcription)
+            # Toujours utiliser extract_items_with_context pour avoir le contexte des fournisseurs
+            if not locations_context:
+                locations_context = {'zones': [], 'furniture': [], 'drawers': [], 'suppliers': []}
+            return self.extract_items_with_context(transcription, locations_context)
         except Exception as e:
             # En cas d'erreur, s'assurer que le fichier temporaire est supprimé
             if 'audio_path' in locals() and os.path.exists(audio_path):
@@ -336,7 +334,7 @@ class AIService:
                     if 'name' in item and item['name']:
                         item['name'] = item['name'][0].upper() + item['name'][1:] if len(item['name']) > 1 else item['name'].upper()
                         item['quantity'] = int(item.get('quantity', 1)) if str(item.get('quantity', '')).isdigit() else 1
-                        item['supplier'] = item.get('supplier') if item.get('supplier') else None
+                        item['supplier_id'] = item.get('supplier_id') if item.get('supplier_id') else None
                 
                 # Vérifier que tous les items ont les champs requis
                 valid_items = []
@@ -397,15 +395,20 @@ class AIService:
 
     def _format_supplier_context(self, suppliers):
         """
-        Formate les données de fournisseur pour le contexte
+        Formate les données de fournisseur pour le contexte.
+        Retourne une chaîne formatée même si la liste est vide.
         """
         if not suppliers:
-            logger.warning("Aucun fournisseur fourni dans le contexte")
-            return "Aucun fournisseur disponible"
+            logger.debug("Liste des fournisseurs vide ou non fournie dans le contexte")
+            return "Aucun fournisseur n'est actuellement disponible dans la base de données."
             
-        formatted = '\n'.join([f"{supplier['id']}: {supplier['name']}" for supplier in suppliers])
-        logger.debug(f"Contexte de fournisseurs formaté: {formatted}")
-        return formatted
+        try:
+            formatted = '\n'.join([f"{supplier['id']}: {supplier['name']}" for supplier in suppliers])
+            logger.debug(f"Contexte de fournisseurs formaté: {formatted}")
+            return formatted
+        except (KeyError, TypeError) as e:
+            logger.error(f"Erreur lors du formatage des fournisseurs: {e}")
+            return "Erreur lors de la récupération des fournisseurs."
 
     def _format_zones_context(self, zones):
         """

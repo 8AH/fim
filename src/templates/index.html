@@ -20,13 +20,13 @@
                     
                     <div class="mt-4">
                         <h5 class="mb-3 text-center">Connexion rapide</h5>
-                        <div class="row g-3">
+                        <div class="row g-2 g-md-3">
                             {% for user in users %}
-                            <div class="col-12 col-sm-6 col-md-4">
+                            <div class="col-6 col-md-4">
                                 <a href="{{ url_for('main.login_with_id', user_id=user.id) }}" 
                                    class="text-decoration-none user-card-wrapper">
                                     <div class="card user-card h-100">
-                                        <div class="card-body text-center">
+                                        <div class="card-body text-center p-2 p-md-3">
                                             <div class="user-avatar mb-2">
                                                 <i class="bi bi-person-circle fs-1"></i>
                                             </div>

@@ -65,34 +65,34 @@
                     <tbody>
                         {% for item in items %}
                         <tr {% if item.is_temporary %}class="temporary-item-row"{% endif %}>
-                            <td>
+                            <td data-label="Nom">
                                 {{ item.name }}
                             </td>
-                            <td>
+                            <td data-label="Quantité">
                                 {{ item.quantity }}
                             </td>
-                            <td>
+                            <td data-label="Zone">
                                 {% if item.is_temporary %}
                                 <span class="text-muted">Non applicable</span>
                                 {% else %}
                                 {{ item.zone_name }}
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Meuble">
                                 {% if item.is_temporary %}
                                 <span class="text-muted">Non applicable</span>
                                 {% else %}
                                 {{ item.furniture_name }}
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Tiroir/Niveau">
                                 {% if item.is_temporary %}
                                 <span class="text-muted">Non applicable</span>
                                 {% else %}
                                 {{ item.drawer_name }}
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Fournisseur">
                                 {% if item.supplier %}
                                 {% set supplier_str = item.supplier.strip() %}
                                 {% if supplier_str.lower().startswith('http') or supplier_str.lower().startswith('www') %}
@@ -104,8 +104,8 @@
                                 <span class="text-muted">Non spécifié</span>
                                 {% endif %}
                             </td>
-                            <td>
-                                <div class="btn-group">
+                            <td data-label="Actions">
+                                <div class="btn-group btn-group-mobile-actions">
                                     <button type="button" class="btn btn-sm btn-outline-danger delete-item-btn" 
                                             data-item-id="{{ item.id }}" 
                                             data-item-name="{{ item.name | e }}"

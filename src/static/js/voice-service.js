@@ -846,7 +846,8 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
         this.locations = {
             zones: [],
             furniture: [],
-            drawers: []
+            drawers: [],
+            suppliers: []
         };
         this.recognizedItems = [];
         
@@ -892,6 +893,14 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
             } else {
                 appLog.error('Erreur lors du chargement des tiroirs:', drawersResponse.status);
             }
+
+            const suppliersResponse = await fetch('/admin/suppliers?json=true');
+            if (suppliersResponse.ok) {
+                this.locations.suppliers = await suppliersResponse.json();
+                appLog.log(`${this.locations.suppliers.length} fournisseurs chargés`);
+            } else {
+                appLog.error('Erreur lors du chargement des fournisseurs:', suppliersResponse.status);
+            }
             
             appLog.log('Données de localisation chargées avec succès:', this.locations);
             
@@ -925,7 +934,8 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 id: drawer.id,
                 name: drawer.name,
                 furniture_id: drawer.furniture_id
-            }))
+            })),
+            suppliers: this.locations.suppliers.map(supplier => ({ id: supplier.id, name: supplier.name }))
         };
         
         const locationsJSON = JSON.stringify(formattedLocations);
@@ -947,6 +957,8 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 .filter(item => item != null) // Filtrer les éléments null ou undefined
                 .map(serverItem => ({
                     name: serverItem.name || '',
+                    quantity: serverItem.quantity || 1,
+                    supplier_id: serverItem.supplier_id || null,
                     zone_id: serverItem.zone_id || null,
                     furniture_id: serverItem.furniture_id || null,
                     drawer_id: serverItem.drawer_id || null,
@@ -979,6 +991,7 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 <div class="row fw-bold gx-2">
                     <div class="col-auto" style="width: 50px;"><small>Incl.</small></div>
                     <div class="col-md-3"><small>Nom de l'article</small></div>
+                    <div class="col-md-2"><small>Fournisseur</small></div>
                     <div class="col-md-2"><small>Zone</small></div>
                     <div class="col-md-2"><small>Meuble</small></div>
                     <div class="col-md-2"><small>Tiroir/Étagère</small></div>
@@ -1001,6 +1014,11 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                         </div>
                         <div class="col-12 col-md-3 mb-2 mb-md-0">
                             <input type="text" class="form-control form-control-sm item-name-input" value="${currentItem.name}" id="item_name_${index}" data-index="${index}" placeholder="Nom">
+                        </div>
+                        <div class="col-12 col-md-2 mb-2 mb-md-0">
+                            <select class="form-select form-select-sm item-location-select item-supplier-select" id="item_supplier_${index}" data-index="${index}" data-type="supplier">
+                                ${this.generateSupplierOptions(currentItem.supplier_id)}
+                            </select>
                         </div>
                         <div class="col-12 col-md-2 mb-2 mb-md-0">
                             <select class="form-select form-select-sm item-location-select item-zone-select" id="item_zone_${index}" data-index="${index}" data-type="zone">
@@ -1138,6 +1156,17 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 this.recognizedItems[index].name = name;
             });
         });
+
+        // Ajouter des écouteurs pour les sélecteurs de fournisseur
+        document.querySelectorAll('[id^="item_supplier_"]').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const index = e.target.dataset.index;
+                const supplierId = e.target.value;
+                
+                // Mettre à jour l'objet recognizedItems
+                this.recognizedItems[index].supplier_id = supplierId;
+            });
+        });
     }
 
     addItemRowListeners() {
@@ -1184,6 +1213,7 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
         // Valider que les articles à ajouter ont bien tous les champs de localisation requis
         const itemsToAdd = itemsToProcess.filter(item => {
             const isValid = item.name && item.name.trim() !== '' && 
+                            item.supplier_id &&
                             item.zone_id && item.furniture_id && item.drawer_id;
             if (!isValid && (item.included !== false)) { // Notifier seulement si l'utilisateur voulait l'inclure
                 notificationManager.warning(`L'article "${item.name || 'Sans nom'}" est incomplet. Veuillez vérifier son nom et sa localisation.`);
@@ -1242,6 +1272,17 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
                 this.onErrorCallback(error);
             }
         });
+    }
+
+    generateSupplierOptions(selectedSupplierId) {
+        let options = '<option value="">Sélectionnez un fournisseur</option>';
+        
+        this.locations.suppliers.forEach(supplier => {
+            const selected = supplier.id == selectedSupplierId ? 'selected' : '';
+            options += `<option value="${supplier.id}" ${selected}>${supplier.name}</option>`;
+        });
+        
+        return options;
     }
 }
 

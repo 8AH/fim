@@ -1,0 +1,56 @@
+/* src/static/css/mobile-nav.css */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: var(--theme-bg-content-panel, #242830);
+  border-top: 1px solid var(--theme-border-light, rgba(255, 255, 255, 0.08));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme-text-secondary, #A8A8A8);
+  text-decoration: none;
+  flex-grow: 1;
+  height: 100%;
+  font-size: 0.7rem;
+  transition: color 0.2s ease;
+}
+
+.mobile-nav-item i {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+}
+
+.mobile-nav-item.active,
+.mobile-nav-item:hover {
+  color: var(--theme-accent-primary, #00BFA6);
+}
+
+.mobile-nav-item.fab {
+    color: var(--theme-text-primary);
+    background: linear-gradient(135deg, var(--theme-gradient-button-start), var(--theme-gradient-button-end));
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    position: relative;
+    bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 2px solid var(--theme-bg-main);
+}
+
+.mobile-nav-item.fab i {
+    font-size: 1.8rem;
+    color: #000;
+    margin-bottom: 0;
+}

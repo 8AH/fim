@@ -102,13 +102,14 @@ def add_items_batch():
     try:
         for item_data in items:
             # Vérifier que toutes les informations requises sont présentes
-            if not all(key in item_data for key in ['name', 'zone_id', 'furniture_id', 'drawer_id', 'quantity']):
+            if not all(key in item_data for key in ['name', 'zone_id', 'furniture_id', 'drawer_id', 'quantity', 'supplier_id']):
                 continue
             
             # Créer un nouvel article
             new_item = Item(
                 name=item_data['name'],
                 quantity=item_data['quantity'],
+                supplier_id=item_data['supplier_id'],
                 is_temporary=False,  # Articles ajoutés par batch sont toujours permanents
                 zone_id=item_data['zone_id'],
                 furniture_id=item_data['furniture_id'],

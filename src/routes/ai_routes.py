@@ -7,6 +7,7 @@ from src.services.ai_service import ai_service # ai_service est l'instance, AISe
 from src.services.ai_service import AIService # Import de la classe pour instanciation si nécessaire ailleurs
 from src.models import db
 from src.models.item import Item # Item est déjà importé
+from src.models.supplier import Supplier  # Import du modèle Supplier
 
 ai_bp = Blueprint('ai', __name__, url_prefix='/api/ai') # Ajout du préfixe d'URL
 
@@ -31,8 +32,17 @@ def voice_recognition():
         # Log du type MIME pour le débogage
         current_app.logger.info(f"Utilisation du suffixe '{ai_service.getFileExtension(audio_mime_type)}' pour le mimeType '{audio_mime_type}' (base: '{audio_mime_type.split(';')[0] if ';' in audio_mime_type else audio_mime_type}')")
         
-        # Utiliser le service AI pour traiter l'audio
-        items = ai_service.process_audio_file(audio_file, audio_mime_type=audio_mime_type)
+        # Préparer le contexte avec les fournisseurs
+        context = {
+            'zones': [],
+            'furniture': [],
+            'drawers': [],
+            'suppliers': [],
+        }
+        current_app.logger.debug(f"Contexte préparé pour l'extraction: {json.dumps(context, indent=2)}")
+        
+        # Utiliser le service AI pour traiter l'audio avec le contexte
+        items = ai_service.process_audio_file(audio_file, audio_mime_type=audio_mime_type, locations_context=context)
         
         # Log détaillé du résultat pour le débogage
         current_app.logger.info(f"Reconnaissance vocale réussie: {len(items)} articles identifiés")
@@ -88,12 +98,12 @@ def inventory_voice_recognition():
             context = json.loads(request.form['context'])
         except:
             pass
-    
+
     try:
-        # Utiliser le service AI pour traiter l'audio avec contexte d'emplacements
+        # Utiliser le service AI pour traiter l'audio avec contexte d'emplacements et fournisseurs
         items = ai_service.process_audio_file(audio_file, is_inventory=True, locations_context=context, audio_mime_type=audio_mime_type)
         return jsonify({'items': items})
-    
+
     except Exception as e:
         current_app.logger.error(f"Erreur dans inventory_voice_recognition: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
