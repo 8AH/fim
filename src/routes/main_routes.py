@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from src.models import db
 from src.models.user import User
 from src.models.item import Item
-from src.models.borrow import Borrow
 from src.models.supplier import Supplier
 from datetime import datetime
 
@@ -17,7 +16,7 @@ def index():
     ou vers la page de login sinon
     """
     if 'user_id' in session:
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('admin.items_list'))
     
     users = db.session.query(User).order_by(User.name).all()
     return render_template('index.html', users=users)
@@ -56,7 +55,7 @@ def login():
     session['user_name'] = user.name
     
     flash(f'Bienvenue, {user.name}!', 'success')
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for('admin.items_list'))
 
 # Connexion rapide avec ID
 @main_bp.route('/login/<int:user_id>')
@@ -73,63 +72,7 @@ def login_with_id(user_id):
     session['user_name'] = user.name
     
     flash(f'Bienvenue, {user.name}!', 'success')
-    return redirect(url_for('main.dashboard'))
-
-# Tableau de bord
-@main_bp.route('/dashboard')
-def dashboard():
-    """
-    Tableau de bord principal de l'application
-    """
-    if 'user_id' not in session:
-        flash('Veuillez vous connecter', 'danger')
-        return redirect(url_for('main.index'))
-    
-    user_id = session['user_id']
-    user = db.session.get(User, user_id)
-    
-    if not user:
-        flash('Utilisateur non trouvé', 'danger')
-        session.clear()
-        return redirect(url_for('main.index'))
-    
-    # Récupérer les articles disponibles (non empruntés)
-    subquery = db.session.query(Borrow.item_id).filter(Borrow.return_date == None)
-    available_items = db.session.query(Item).filter(
-        ~Item.id.in_(subquery)
-    ).order_by(Item.name).all()
-    
-    return render_template('dashboard.html', 
-                           user=user, 
-                           available_items=available_items)
-
-# Mes emprunts
-@main_bp.route('/my-borrows')
-def my_borrows():
-    """
-    Page affichant tous les emprunts en cours de l'utilisateur
-    """
-    if 'user_id' not in session:
-        flash('Veuillez vous connecter', 'danger')
-        return redirect(url_for('main.index'))
-    
-    user_id = session['user_id']
-    user = db.session.get(User, user_id)
-    
-    if not user:
-        flash('Utilisateur non trouvé', 'danger')
-        session.clear()
-        return redirect(url_for('main.index'))
-    
-    # Récupérer les emprunts en cours de l'utilisateur
-    current_borrows = db.session.query(Borrow).filter(
-        Borrow.user_id == user_id,
-        Borrow.return_date == None
-    ).all()
-    
-    return render_template('my_borrows.html', 
-                           user=user, 
-                           current_borrows=current_borrows)
+    return redirect(url_for('admin.items_list'))
 
 # Déconnexion
 @main_bp.route('/logout')

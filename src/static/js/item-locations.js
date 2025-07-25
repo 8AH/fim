@@ -8,12 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Vérifier si nous sommes sur la page d'ajout ou d'édition d'article
     const isAddEditPage = document.getElementById('itemZone') !== null || 
                       document.getElementById('editItemZone') !== null;
+   
     
-    // Vérifier si nous sommes sur le dashboard avec le modal d'ajout d'article
-    const isDashboardAddItem = document.getElementById('addItemModal') !== null &&
-                              document.querySelector('#addItemModal #itemZone') !== null;
-    
-    if (!isAddEditPage && !isDashboardAddItem) {
+    if (!isAddEditPage) {
         return;
     }
     

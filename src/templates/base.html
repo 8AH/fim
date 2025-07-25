@@ -29,7 +29,7 @@
     {% if 'user_id' in session %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('admin.items_list') }}">
                 <img src="{{ url_for('static', filename='images/logov2_nobackground.png') }}" alt="Logo" class="me-2" style="height: 40px; width: auto;">
                 <span>
                     {% if request.endpoint in ['admin', 'location.location_admin', 'user_list', 'items_list', 'db_config'] %}
@@ -44,15 +44,30 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNavContent">
                 <div class="navbar-nav ms-auto">
-                    <!-- Lien vers Mes emprunts -->
-                    <a class="nav-link" href="{{ url_for('main.my_borrows') }}">
-                        <i class="bi bi-box-seam"></i> Mes emprunts
-                    </a>
                     
-                    <!-- Lien vers Chat Inventaire -->
-                    <a class="nav-link" href="{{ url_for('main.chat_inventaire') }}">
-                        <i class="bi bi-chat-dots"></i> Chat inventaire
+                    <a class="nav-link" href="{{ url_for('admin.items_list') }}">
+                        <i class="bi bi-chat-dots"></i> Liste du matériel
                     </a>
+
+                    <a class="nav-link" href="{{ url_for('admin.location_admin') }}">
+                        <i class="bi bi-chat-dots"></i> Gestion des emplacements
+                    </a>
+
+                    <a class="nav-link" href="{{ url_for('supplier.supplier_list') }}">
+                        <i class="bi bi-chat-dots"></i> Gestion des fournisseurs
+                    </a>
+
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="aiDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Fonctionnalités IA
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark custom-dropdown" aria-labelledby="aiDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('main.chat_inventaire') }}">Chat inventaire</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.inventory_voice_admin') }}">Reconnaissance vocale d'inventaire</a></li>
+
+                        </ul>
+                    </div>
+
 
                     <!-- Menu déroulant pour l'administration -->
                     <div class="nav-item dropdown">
@@ -60,15 +75,7 @@
                             Administration
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark custom-dropdown" aria-labelledby="adminDropdown">
-                            <li><h6 class="dropdown-header">Gestion des données</h6></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin.inventory_voice_admin') }}">Reconnaissance vocale d'inventaire</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin.items_list') }}">Liste du matériel</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('supplier.supplier_list') }}">Gestion des fournisseurs</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin.location_admin') }}">Gestion des emplacements</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.user_list') }}">Liste des utilisateurs</a></li>
-                            
-                            <li><hr class="dropdown-divider"></li>
-                            <li><h6 class="dropdown-header">Configuration</h6></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.db_config') }}">Base de données</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.app_config') }}">Options et API</a></li>
                         </ul>

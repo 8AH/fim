@@ -25,19 +25,10 @@
                         <tr>
                             <td>{{ user.name }}</td>
                             <td>
-                                {% if user.active_borrows_count > 0 %}
-                                <span class="badge bg-secondary">{{ user.active_borrows_count }}</span>
-                                {% else %}
-                                <span class="badge bg-secondary">0</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if user.active_borrows_count == 0 %}
                                 <button type="button" class="btn btn-sm btn-outline-danger" 
                                         onclick="confirmDelete('{{ user.id }}', '{{ user.name }}')">
                                     <i class="bi bi-trash"></i>
                                 </button>
-                                {% else %}
                                 <button type="button" class="btn btn-sm btn-danger" disabled 
                                         title="Impossible de supprimer un utilisateur avec des emprunts actifs">
                                     <i class="bi bi-trash"></i>

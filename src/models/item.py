@@ -27,7 +27,6 @@ class Item(db.Model):
 
     # Dates de création et d'emprunt
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    borrows = db.relationship('Borrow', backref='item', lazy=True, cascade="all, delete-orphan")
     
     # Relations avec les tables de localisation
     zone_rel = db.relationship('Zone', backref='items', lazy=True)

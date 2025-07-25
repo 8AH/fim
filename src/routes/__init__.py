@@ -5,7 +5,6 @@ from .admin_routes import admin_bp
 from .ai_routes import ai_bp
 from .main_routes import main_bp
 from .items_api import items_api_bp
-from .loans_api import loans_api_bp
 from .reports_routes import reports_bp
 from .utils_routes import utils_bp
 
@@ -16,7 +15,6 @@ blueprints = [
     ai_bp,
     main_bp,
     items_api_bp,
-    loans_api_bp,
     reports_bp,
     utils_bp,
     supplier_bp

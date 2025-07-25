@@ -4,7 +4,6 @@ from src.models import db
 from src.models.user import User
 from src.models.item import Item
 from src.models.supplier import Supplier
-from src.models.borrow import Borrow
 from src.models.location import Zone, Furniture, Drawer
 import os
 import sys
@@ -128,32 +127,13 @@ def admin_dashboard():
 # Gestion des utilisateurs
 @admin_bp.route('/users')
 def user_list():
-    users_with_borrows = []
     users = db.session.query(User).order_by(User.name).all()
     
-    for user in users:
-        active_borrows = db.session.query(Borrow).filter(Borrow.user_id == user.id, Borrow.return_date == None).count()
-        users_with_borrows.append({
-            'id': user.id,
-            'name': user.name,
-            'active_borrows_count': active_borrows
-        })
-    
-    return render_template('admin/user_list.html', users=users_with_borrows)
+    return render_template('admin/user_list.html', users=users)
 
 @admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     try:
-        # Vérifier s'il y a des emprunts actifs pour cet utilisateur
-        active_borrows = db.session.query(Borrow).filter(
-            Borrow.user_id == user_id,
-            Borrow.return_date == None
-        ).count()
-        
-        if active_borrows > 0:
-            flash(f"Impossible de supprimer l'utilisateur car il a {active_borrows} emprunt(s) actif(s).", "danger")
-            return redirect(url_for('admin.user_list'))
-        
         user = db.session.get(User, user_id)
         if user:
             db.session.delete(user)
@@ -193,23 +173,13 @@ def items_list():
     
     items_list = []
     for item in items:
-        # Vérifier si l'article est emprunté et récupérer l'emprunteur
-        borrow_record = db.session.query(Borrow).filter(Borrow.item_id == item.id, Borrow.return_date == None).first()
-        is_borrowed = borrow_record is not None
-        borrower_name = None
-        if borrow_record:
-            user = db.session.get(User, borrow_record.user_id)
-            if user:
-                borrower_name = user.name
         
         # Créer un dictionnaire avec les informations de l'article
         item_dict = {
             'id': item.id,
             'name': item.name,
             'quantity': item.quantity,
-            'is_borrowed': is_borrowed,
             'is_temporary': item.is_temporary,
-            'borrower_name': borrower_name,  # Ajouter le nom de l'emprunteur
             'supplier': item.supplier_rel.name if item.supplier_rel else 'Non spécifié',
         }
         
@@ -380,15 +350,6 @@ def delete_item(item_id):
         item = db.session.get(Item, item_id)
         if not item:
             return jsonify(success=False, error="Article non trouvé."), 404
-
-        # Vérifier si l'article est emprunté
-        is_borrowed = db.session.query(Borrow).filter(
-            Borrow.item_id == item.id,
-            Borrow.return_date == None
-        ).first() is not None
-        
-        if is_borrowed:
-            return jsonify(success=False, error=f"Impossible de supprimer l'article '{item.name}' car il est actuellement emprunté."), 400
         
         item_name = item.name # Sauvegarder le nom avant la suppression
         db.session.delete(item)
@@ -406,29 +367,24 @@ def delete_item(item_id):
         # current_app.logger.error(f"Erreur générique lors de la suppression de l'article {item_id}: {str(e)}")
         return jsonify(success=False, error=f"Une erreur est survenue: {str(e)}"), 500
 
-@admin_bp.route('/items/delete-unborrowed-temporary', methods=['POST'])
-def delete_unborrowed_temporary_items():
+@admin_bp.route('/items/delete-temporary', methods=['POST'])
+def delete_temporary_items():
     try:
-        # Lister les IDs des articles actuellement empruntés
-        borrowed_item_ids = db.session.query(Borrow.item_id).filter(Borrow.return_date == None).distinct().all()
-        borrowed_item_ids = [item_id for (item_id,) in borrowed_item_ids]
-
         # Sélectionner les articles temporaires qui ne sont PAS dans la liste des empruntés
         items_to_delete = db.session.query(Item).filter(
             Item.is_temporary == True,
-            ~Item.id.in_(borrowed_item_ids) # Le tilde ~ signifie NOT IN
         ).all()
         
         count_deleted = len(items_to_delete)
 
         if not items_to_delete:
-            return jsonify(success=True, message="Aucun article temporaire non emprunté à supprimer.", count=0)
+            return jsonify(success=True, message="Aucun article temporaire à supprimer.", count=0)
 
         for item in items_to_delete:
             db.session.delete(item)
         
         db.session.commit()
-        return jsonify(success=True, message=f"{count_deleted} article(s) temporaire(s) non emprunté(s) ont été supprimé(s).", count=count_deleted)
+        return jsonify(success=True, message=f"{count_deleted} article(s) temporaire(s) ont été supprimé(s).", count=count_deleted)
 
     except SQLAlchemyError as e:
         db.session.rollback()

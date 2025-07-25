@@ -9,7 +9,6 @@ from fpdf import FPDF
 from src.models import db
 from src.models.user import User
 from src.models.item import Item
-from src.models.borrow import Borrow
 
 # Création du blueprint
 reports_bp = Blueprint('reports', __name__)
@@ -23,12 +22,6 @@ def export_items_csv():
     if 'user_id' not in session:
         flash('Veuillez vous connecter', 'danger')
         return redirect(url_for('main.index'))
-    
-    # Accès ouvert à tous les utilisateurs
-    # Accès autorisé pour tous les utilisateurs
-    if False:
-        flash('Vous n\'êtes pas autorisé à accéder à cette page', 'danger')
-        return redirect(url_for('main.dashboard'))
     
     # Récupérer tous les articles
     items = db.session.query(Item).order_by(Item.name).all()
@@ -68,108 +61,6 @@ def after_this_request(func):
         request._after_this_request_functions.append(lambda: func(*args, **kwargs))
         return response
     return wrapper
-
-# Génération d'un PDF des emprunts d'un utilisateur
-@reports_bp.route('/generate_pdf', methods=['POST'])
-def generate_pdf():
-    """
-    Génère un PDF des emprunts d'un utilisateur
-    """
-    if 'user_id' not in session:
-        flash('Veuillez vous connecter', 'danger')
-        return redirect(url_for('main.index'))
-    
-    # Récupérer l'ID de l'utilisateur
-    user_id = request.form.get('user_id')
-    if not user_id:
-        flash('Utilisateur requis', 'danger')
-        return redirect(url_for('main.index'))
-    
-    user = db.session.get(User, user_id)
-    if not user:
-        flash('Utilisateur non trouvé', 'danger')
-        return redirect(url_for('main.index'))
-
-    # Récupérer les emprunts en cours de l'utilisateur
-    current_loans = db.session.query(Borrow).filter(
-        Borrow.user_id == user_id,
-        Borrow.return_date == None
-    ).all()
-    
-    # Créer un PDF avec FPDF
-    pdf = FPDF()
-    pdf.add_page()
-    
-    # Ajouter le titre
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, 'Liste des emprunts', 0, 1, 'C')
-    pdf.cell(0, 10, f'Utilisateur: {user.name}', 0, 1, 'C')
-    pdf.cell(0, 10, f'Date: {datetime.now().strftime("%d/%m/%Y")}', 0, 1, 'C')
-    pdf.ln(10)
-    
-    # Vérifier s'il y a des emprunts
-    if not current_loans:
-        pdf.set_font('Arial', '', 12)
-        pdf.cell(0, 10, 'Aucun emprunt en cours.', 0, 1)
-    else:
-        # Entête du tableau
-        pdf.set_font('Arial', 'B', 12)
-        pdf.cell(10, 10, '#', 1, 0, 'C')
-        pdf.cell(70, 10, 'Article', 1, 0, 'C')
-        pdf.cell(60, 10, 'Emplacement', 1, 0, 'C')
-        pdf.cell(50, 10, 'Date d\'emprunt', 1, 1, 'C')
-        
-        # Contenu du tableau
-        pdf.set_font('Arial', '', 10)
-        for i, loan in enumerate(current_loans, 1):
-            item = loan.item
-            
-            # Numéro
-            pdf.cell(10, 10, str(i), 1, 0, 'C')
-            
-            # Nom de l'article
-            pdf.cell(70, 10, item.name, 1, 0, 'L')
-            
-            # Emplacement
-            location = item.location_info if not item.is_temporary else 'Article temporaire'
-            pdf.cell(60, 10, location, 1, 0, 'L')
-            
-            # Date d'emprunt
-            borrow_date = loan.borrow_date.strftime('%d/%m/%Y') if loan.borrow_date else ''
-            pdf.cell(50, 10, borrow_date, 1, 1, 'C')
-    
-    # Générer le PDF dans un fichier temporaire
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-        pdf_path = tmp.name
-        pdf.output(pdf_path)
-    
-    # Envoyer le fichier PDF au client
-    try:
-        return_data = send_file(
-            pdf_path,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f'emprunts_{user.name}_{datetime.now().strftime("%Y%m%d")}.pdf'
-        )
-        
-        # Nettoyer le fichier temporaire après l'envoi
-        @after_this_request
-        def remove_file(response):
-            try:
-                os.unlink(pdf_path)
-            except Exception as e:
-                print(f"Erreur lors de la suppression du fichier temporaire: {e}")
-            return response
-            
-        return return_data
-    except Exception as e:
-        # En cas d'erreur, supprimer le fichier temporaire et retourner une erreur
-        try:
-            os.unlink(pdf_path)
-        except:
-            pass
-        flash(f'Erreur lors de la génération du PDF: {str(e)}', 'danger')
-        return redirect(url_for('main.dashboard'))
 
 @reports_bp.route('/all_items_pdf')
 def generate_all_items_pdf():

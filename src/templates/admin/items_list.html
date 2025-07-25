@@ -14,7 +14,7 @@
                 <a href="{{ url_for('reports.generate_all_items_pdf') }}" class="btn btn-info ms-2" target="_blank">
                     <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
                 </a>
-                <button type="button" id="deleteUnborrowedTempItemsBtn" class="btn btn-outline-warning ms-2">
+                <button type="button" id="deleteTempItemsBtn" class="btn btn-outline-warning ms-2">
                     <i class="bi bi-eraser"></i> Suppr. temp. non empruntés
                 </button>
             </div>
@@ -58,7 +58,6 @@
                             <th>Zone</th>
                             <th>Meuble</th>
                             <th>Tiroir/Niveau</th>
-                            <th>État</th>
                             <th>Fournisseur</th>
                             <th>Actions</th>
                         </tr>
@@ -94,13 +93,6 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if item.is_borrowed %}
-                                <span class="badge" {% if item.borrower_name %}data-bs-toggle="tooltip" data-bs-placement="top" title="Emprunté par: {{ item.borrower_name }}"{% endif %}>Emprunté</span>
-                                {% else %}
-                                <span class="badge">Disponible</span>
-                                {% endif %}
-                            </td>
-                            <td>
                                 {% if item.supplier %}
                                 {% set supplier_str = item.supplier.strip() %}
                                 {% if supplier_str.lower().startswith('http') or supplier_str.lower().startswith('www') %}
@@ -114,18 +106,12 @@
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    {% if item.is_borrowed %}
-                                    <button type="button" class="btn btn-sm btn-outline-danger" disabled title="Impossible de supprimer un article emprunté">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                    {% else %}
                                     <button type="button" class="btn btn-sm btn-outline-danger delete-item-btn" 
                                             data-item-id="{{ item.id }}" 
                                             data-item-name="{{ item.name | e }}"
                                             title="Supprimer l'article">
                                         <i class="bi bi-trash"></i>
                                     </button>
-                                    {% endif %}
                                     {% if not item.is_temporary %}
                                     <a href="{{ url_for('admin.edit_item', item_id=item.id) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
@@ -260,8 +246,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- Bulk Delete Temporary Unborrowed Items Logic (Custom Modal) ---
-    const deleteTempBtn = document.getElementById('deleteUnborrowedTempItemsBtn');
+    // --- Bulk Delete Temporary Items Logic (Custom Modal) ---
+    const deleteTempBtn = document.getElementById('deleteTempItemsBtn');
     const confirmBulkDeleteModalElement = document.getElementById('confirmBulkDeleteModal');
     
     if (deleteTempBtn && confirmBulkDeleteModalElement) {
@@ -274,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (executeBulkDeleteBtn) {
             executeBulkDeleteBtn.addEventListener('click', function() {
-                fetch("{{ url_for('admin.delete_unborrowed_temporary_items') }}", {
+                fetch("{{ url_for('admin.delete_temporary_items') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -302,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     } else {
-        if (!deleteTempBtn) console.error("Bouton 'deleteUnborrowedTempItemsBtn' non trouvé.");
+        if (!deleteTempBtn) console.error("Bouton 'deleteTempItemsBtn' non trouvé.");
         if (!confirmBulkDeleteModalElement) console.error("Modal 'confirmBulkDeleteModal' non trouvée.");
     }
 });

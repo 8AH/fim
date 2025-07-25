@@ -78,27 +78,10 @@ def login_redirect():
 def login_existing_redirect(user_id):
     return redirect(url_for('main.login_with_id', user_id=user_id))
 
-@app.route('/dashboard')
-def dashboard_redirect():
-    return redirect(url_for('main.dashboard'))
-
 # Cette route a été migrée vers main_routes.py
 @app.route('/logout')
 def logout_redirect():
     return redirect(url_for('main.logout'))
-
-# Ces routes ont été migrées vers loans_api.py
-@app.route('/api/loans/create', methods=['POST'])
-def api_create_loan_redirect():
-    return redirect(url_for('loans_api.create_loan'))
-
-@app.route('/api/loans/<int:loan_id>/return', methods=['POST'])
-def api_return_loan_redirect(loan_id):
-    return redirect(url_for('loans_api.return_loan', loan_id=loan_id))
-
-@app.route('/api/loans', methods=['GET'])
-def api_get_loans_redirect():
-    return redirect(url_for('loans_api.get_loans'))
 
 @app.route('/api/items', methods=['GET'])
 def api_items_redirect():
