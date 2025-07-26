@@ -79,12 +79,12 @@ def edit_supplier(supplier_id):
 def delete_supplier(supplier_id):
     supplier = db.session.get(Supplier, supplier_id)
     if not supplier:
-        flash("Fournisseur non trouvé.", "danger")
-        return redirect(url_for('supplier.supplier_list'))
+        return jsonify(success=False, error="Fournisseur non trouvé."), 404
+    
     if supplier.items:
-        flash("Impossible de supprimer un fournisseur lié à des articles.", "danger")
-        return redirect(url_for('supplier.supplier_list'))
+        return jsonify(success=False, error="Impossible de supprimer un fournisseur lié à des articles."), 400
+        
+    supplier_name = supplier.name
     db.session.delete(supplier)
     db.session.commit()
-    flash("Fournisseur supprimé avec succès.", "success")
-    return redirect(url_for('supplier.supplier_list'))
+    return jsonify(success=True, message=f"Fournisseur '{supplier_name}' supprimé avec succès.")

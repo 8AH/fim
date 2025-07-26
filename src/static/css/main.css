@@ -866,6 +866,10 @@ body.has-mobile-nav {
         color: var(--theme-text-secondary);
     }
 
+    .table tbody td:empty::before {
+        content: "";
+    }
+
     .btn-group-mobile-actions {
         width: 100%;
         display: flex;
@@ -902,6 +906,15 @@ body.has-mobile-nav {
     #supplier_list form {
         max-width: 100% !important;
         margin-top: 0.5rem;
+    }
+
+    #supplier_list .btn-group-mobile-actions {
+        width: 100%;
+        display: flex;
+    }
+
+    #supplier_list .btn-group-mobile-actions .btn {
+        flex-grow: 1;
     }
 }
 

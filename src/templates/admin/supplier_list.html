@@ -3,7 +3,7 @@
 {% block title %}Gestion des fournisseurs - Administration{% endblock %}
 
 {% block content %}
-<div class="container mt-4 mb-4">
+<div class="container mt-4 mb-4" id="supplier_list">
     <div class="row">
         <div class="col-12 mb-4">
             <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
@@ -41,15 +41,28 @@
                     <tbody>
                         {% for supplier in suppliers %}
                         <tr>
-                            <td>{{ supplier.name }}</td>
-                            <td>{{ supplier.site or '' }}</td>
-                            <td>{{ supplier.mail or '' }}</td>
-                            <td>{{ supplier.comment or '' }}</td>
-                            <td>
-                                <a href="{{ url_for('supplier.edit_supplier', supplier_id=supplier.id) }}" class="btn btn-primary btn-sm me-1" title="Modifier"><i class="bi bi-pencil-square"></i></a>
-                                <form method="POST" action="{{ url_for('supplier.delete_supplier', supplier_id=supplier.id) }}" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer ce fournisseur ?');"><i class="bi bi-trash"></i></button>
-                                </form>
+                            <td data-label="Nom">{{ supplier.name }}</td>
+                            <td data-label="Site web">
+                                {% if supplier.site %}
+                                    <a href="{{ supplier.site if supplier.site.startswith('http') else 'http://' ~ supplier.site }}" target="_blank" rel="noopener noreferrer">{{ supplier.site }}</a>
+                                {% endif %}
+                            </td>
+                            <td data-label="Email">
+                                {% if supplier.mail %}
+                                    <a href="mailto:{{ supplier.mail }}">{{ supplier.mail }}</a>
+                                {% endif %}
+                            </td>
+                            <td data-label="Commentaire">{{ supplier.comment or '' }}</td>
+                            <td data-label="Actions">
+                                <div class="btn-group btn-group-mobile-actions">
+                                    <a href="{{ url_for('supplier.edit_supplier', supplier_id=supplier.id) }}" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-supplier-btn" 
+                                            data-supplier-id="{{ supplier.id }}" 
+                                            data-supplier-name="{{ supplier.name | e }}"
+                                            title="Supprimer le fournisseur">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -62,4 +75,78 @@
     </div>
     <a href="{{ url_for('admin.items_list') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Retour à la liste des articles</a>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-supplier-btn');
+    let confirmTimeout = null;
+    let lastClickedButton = null;
+    const originalIconHTML = '<i class="bi bi-trash"></i>';
+    const confirmIconHTML = '<i class="bi bi-check-lg"></i>';
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault(); 
+            const supplierId = this.dataset.supplierId;
+            const supplierName = this.dataset.supplierName;
+            const row = this.closest('tr');
+
+            const revertButtonAppearance = (btn) => {
+                btn.innerHTML = originalIconHTML;
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-outline-danger');
+                btn.title = "Supprimer le fournisseur";
+                delete btn.dataset.confirming;
+            };
+
+            if (lastClickedButton === this && this.dataset.confirming === 'true') {
+                clearTimeout(confirmTimeout);
+                revertButtonAppearance(this);
+                lastClickedButton = null;
+
+                fetch(`{{ url_for('supplier.delete_supplier', supplier_id=0) }}`.replace('0', supplierId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        notificationManager.success(data.message || `Fournisseur "${supplierName}" supprimé.`);
+                        if (row) row.remove();
+                    } else {
+                        notificationManager.error(data.error || 'Erreur lors de la suppression.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur de suppression:', error);
+                    notificationManager.error('Une erreur réseau est survenue.');
+                });
+
+            } else {
+                if (lastClickedButton && lastClickedButton.dataset.confirming === 'true') {
+                    clearTimeout(confirmTimeout);
+                    revertButtonAppearance(lastClickedButton);
+                }
+                this.dataset.confirming = 'true';
+                lastClickedButton = this;
+                this.innerHTML = confirmIconHTML;
+                this.classList.remove('btn-outline-danger');
+                this.classList.add('btn-danger');
+                this.title = "Cliquez à nouveau pour confirmer la suppression";
+
+                confirmTimeout = setTimeout(() => {
+                    if (this.dataset.confirming === 'true') {
+                        revertButtonAppearance(this);
+                        if (lastClickedButton === this) lastClickedButton = null;
+                    }
+                }, 3500); 
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
