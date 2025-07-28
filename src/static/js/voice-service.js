@@ -27,6 +27,7 @@ class BaseVoiceRecognition {
         this.visualizer = document.getElementById(config.visualizerId);
         this.resultsContainer = document.getElementById(config.resultsContainerId);
         this.statusText = document.getElementById(config.statusTextId);
+        this.cancelBtn = config.cancelBtnId ? document.getElementById(config.cancelBtnId) : null;
         
         // Configuration spécifique
         this.apiEndpoint = config.apiEndpoint;
@@ -68,6 +69,11 @@ class BaseVoiceRecognition {
         }
         
         // Le bouton d'annulation a été supprimé, la fermeture se fait maintenant via la croix en haut de la modal
+        if (this.cancelBtn) {
+            this.cancelBtn.addEventListener('click', () => {
+                this.resetRecording();
+            });
+        }
         
         // Bouton pour confirmer les articles
         if (this.confirmBtn) {
@@ -1010,36 +1016,36 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
 
                 listItem.innerHTML = `
                     <div class="row gx-2 align-items-center">
-                        <div class="col-auto" style="width: 50px;">
+                        <div class="col-auto" style="width: 50px;" data-label="Incl.">
                             <input class="form-check-input item-include-checkbox" type="checkbox" id="item_include_${index}" data-index="${index}" ${currentItem.included ? 'checked' : ''}>
                         </div>
-                        <div class="col-12 col-md-3 mb-2 mb-md-0">
+                        <div class="col-12 col-md-3 mb-2 mb-md-0" data-label="Article">
                             <input type="text" class="form-control form-control-sm item-name-input" value="${currentItem.name}" id="item_name_${index}" data-index="${index}" placeholder="Nom">
                         </div>
-                        <div class="col-12 col-md-1 mb-2 mb-md-0">
+                        <div class="col-12 col-md-1 mb-2 mb-md-0" data-label="Qté">
                             <input type="number" class="form-control form-control-sm item-quantity-input" value="${currentItem.quantity}" id="item_quantity_${index}" data-index="${index}" min="1">
                         </div>
-                        <div class="col-12 col-md-2 mb-2 mb-md-0">
+                        <div class="col-12 col-md-2 mb-2 mb-md-0" data-label="Fournisseur">
                             <select class="form-select form-select-sm item-location-select item-supplier-select" id="item_supplier_${index}" data-index="${index}" data-type="supplier">
                                 ${this.generateSupplierOptions(currentItem.supplier_id)}
                             </select>
                         </div>
-                        <div class="col-12 col-md-2 mb-2 mb-md-0">
+                        <div class="col-12 col-md-2 mb-2 mb-md-0" data-label="Zone">
                             <select class="form-select form-select-sm item-location-select item-zone-select" id="item_zone_${index}" data-index="${index}" data-type="zone">
                                 ${this.generateZoneOptions(currentItem.zone_id)}
                             </select>
                         </div>
-                        <div class="col-12 col-md-2 mb-2 mb-md-0">
+                        <div class="col-12 col-md-2 mb-2 mb-md-0" data-label="Meuble">
                             <select class="form-select form-select-sm item-location-select item-furniture-select" id="item_furniture_${index}" data-index="${index}" data-type="furniture">
                                 ${this.generateFurnitureOptions(currentItem.zone_id, currentItem.furniture_id)}
                             </select>
                         </div>
-                        <div class="col-12 col-md-2 mb-2 mb-md-0">
+                        <div class="col-12 col-md-2 mb-2 mb-md-0" data-label="Tiroir">
                             <select class="form-select form-select-sm item-location-select item-drawer-select" id="item_drawer_${index}" data-index="${index}" data-type="drawer">
                                 ${this.generateDrawerOptions(currentItem.furniture_id, currentItem.drawer_id)}
                             </select>
                         </div>
-                        <div class="col-auto ms-auto ms-md-0" style="width: 50px;">
+                        <div class="col-auto ms-auto ms-md-0" style="width: 50px;" data-label="Action">
                             <button type="button" class="btn btn-sm btn-outline-danger item-remove-btn" data-index="${index}" title="Supprimer cet article">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -1299,6 +1305,104 @@ class InventoryVoiceRecognition extends BaseVoiceRecognition {
         });
         
         return options;
+    }
+}
+
+/**
+ * Classe pour la reconnaissance vocale de mise à jour de quantité
+ */
+class QuantityVoiceRecognition extends BaseVoiceRecognition {
+    constructor(config) {
+        super({
+            btnId: config.btnId,
+            modalId: config.modalId,
+            startStopBtnId: config.startStopBtnId,
+            confirmBtnId: config.confirmBtnId, // Bien que nous n'en ayons pas besoin, la classe de base l'attend
+            timerDisplayId: config.timerDisplayId,
+            visualizerId: config.visualizerId,
+            resultsContainerId: config.resultsContainerId,
+            statusTextId: config.statusTextId,
+            apiEndpoint: '/api/ai/voice-quantity-update'
+        });
+
+        this.onSuccessCallback = config.onSuccess || function() {};
+        this.init();
+    }
+
+    displayResults(data) {
+        if (!this.resultsContainer) return;
+
+        this.resultsContainer.innerHTML = ''; // Vider les anciens résultats
+
+        if (data.success) {
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success';
+            successAlert.innerHTML = `
+                <strong>Succès !</strong> ${data.message}
+                <ul class="list-unstyled mt-2 mb-0">
+                    <li><strong>Article :</strong> ${data.item_name}</li>
+                    <li><strong>Ancienne quantité :</strong> ${data.old_quantity}</li>
+                    <li><strong>Nouvelle quantité :</strong> ${data.new_quantity}</li>
+                </ul>
+            `;
+            this.resultsContainer.appendChild(successAlert);
+            this.updateUI('ready'); // Prêt pour un nouvel enregistrement
+            if (this.onSuccessCallback) {
+                this.onSuccessCallback(data);
+            }
+            // Fermer la modale après un court délai
+            setTimeout(() => {
+                if (this.voiceModal) {
+                    this.voiceModal.hide();
+                }
+            }, 3000); // 3 secondes
+        } else {
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'alert alert-danger';
+            errorAlert.textContent = data.error || 'Une erreur inconnue est survenue.';
+            this.resultsContainer.appendChild(errorAlert);
+            this.updateUI('error');
+        }
+        this.resultsContainer.classList.add('show');
+    }
+
+    // La méthode de confirmation n'est pas nécessaire car la mise à jour est directe
+    handleConfirmation() {
+        // Vide, car l'action est effectuée directement dans processAudio
+    }
+
+    // Surcharger processAudio pour gérer la réponse différemment
+    async processAudio() {
+        this.updateStatus('Traitement de l\'audio...');
+        this.updateUI('processing');
+
+        const audioBlob = new Blob(this.audioChunks, { type: this.actualRecordingMimeType });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording' + this.getFileExtension(this.actualRecordingMimeType));
+        formData.append('mimeType', this.actualRecordingMimeType);
+
+        try {
+            const response = await fetch(this.apiEndpoint, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `Erreur ${response.status}`);
+            }
+
+            if (data.success && data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                this.displayResults(data);
+            }
+
+        } catch (error) {
+            appLog.error('Erreur lors de la mise à jour de la quantité:', error);
+            this.displayResults({ error: error.message });
+        }
     }
 }
 

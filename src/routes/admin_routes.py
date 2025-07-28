@@ -413,3 +413,42 @@ def inventory_voice_admin():
     Page d'administration pour la reconnaissance vocale d'inventaire
     """
     return render_template('admin/inventory_voice.html')
+
+@admin_bp.route('/quantity-update-confirmation')
+def quantity_update_confirmation():
+    item_id = request.args.get('item_id', type=int)
+    new_quantity = request.args.get('new_quantity', type=int)
+    old_quantity = request.args.get('old_quantity', type=int)
+    action_text = request.args.get('action_text', '')
+
+    item = db.session.get(Item, item_id)
+    if not item:
+        flash("Article non trouvé.", "danger")
+        return redirect(url_for('admin.items_list'))
+
+    return render_template('admin/quantity_update_confirmation.html',
+                           item_id=item.id,
+                           item_name=item.name,
+                           new_quantity=new_quantity,
+                           old_quantity=old_quantity,
+                           action_text=action_text)
+
+@admin_bp.route('/confirm-quantity-update', methods=['POST'])
+def confirm_quantity_update():
+    item_id = request.form.get('item_id', type=int)
+    new_quantity = request.form.get('new_quantity', type=int)
+
+    item = db.session.get(Item, item_id)
+    if not item:
+        flash("Article non trouvé.", "danger")
+        return redirect(url_for('admin.items_list'))
+
+    try:
+        item.quantity = new_quantity
+        db.session.commit()
+        flash(f"La quantité de '{item.name}' a été mise à jour avec succès.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erreur lors de la mise à jour de la quantité : {str(e)}", "danger")
+
+    return redirect(url_for('admin.items_list'))

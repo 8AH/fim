@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmer la modification de quantité{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="section-title-underline mb-0"><i class="bi bi-check2-circle me-2"></i>Confirmer la modification</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Veuillez confirmer la modification suivante :</p>
+                    
+                    <div class="alert alert-info">
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Article :</strong> {{ item_name }}</li>
+                            <li><strong>Action :</strong> {{ action_text }}</li>
+                            <li><strong>Ancienne quantité :</strong> {{ old_quantity }}</li>
+                            <li><strong>Nouvelle quantité :</strong> <strong class="text-success">{{ new_quantity }}</strong></li>
+                        </ul>
+                    </div>
+
+                    <p class="text-muted">En confirmant, la quantité de l'article sera mise à jour dans la base de données.</p>
+
+                    <form method="POST" action="{{ url_for('admin.confirm_quantity_update') }}">
+                        <input type="hidden" name="item_id" value="{{ item_id }}">
+                        <input type="hidden" name="new_quantity" value="{{ new_quantity }}">
+                        
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('admin.inventory_voice_admin') }}" class="btn btn-secondary me-2">
+                                <i class="bi bi-x-circle me-1"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>Confirmer la modification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -916,6 +916,46 @@ body.has-mobile-nav {
     #supplier_list .btn-group-mobile-actions .btn {
         flex-grow: 1;
     }
+
+    /* Styles pour la liste de résultats de la reconnaissance vocale d'inventaire */
+    .inventory-results-list .voice-item-row {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid var(--theme-border-light);
+        border-radius: var(--border-radius-md);
+        padding: 0.75rem;
+    }
+
+    .inventory-results-list .voice-item-row .row > [class*="col-"] {
+        display: block;
+        width: 100%;
+        text-align: right;
+        padding-left: 50%; /* Espace pour le label */
+        position: relative;
+        margin-bottom: 0.5rem;
+    }
+
+    .inventory-results-list .voice-item-row .row > [class*="col-"]::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0.5rem;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: bold;
+        color: var(--theme-text-secondary);
+        font-size: 0.8rem;
+    }
+
+    .inventory-results-list .voice-item-row .row > .col-auto[data-label="Action"] {
+        padding-left: 0.5rem; /* Pas de padding spécial pour le bouton supprimer */
+        text-align: right;
+    }
+
+     .inventory-results-list .voice-item-row .row > .col-auto[data-label="Action"]::before {
+        display: none; /* Cacher le label pour le bouton supprimer */
+     }
 }
 
 

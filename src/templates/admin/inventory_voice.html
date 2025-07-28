@@ -8,47 +8,57 @@
 
 {% block content %}
 <div class="container mt-4 mb-4">
-    <div class="row">
-        <div class="col-12 mb-4 d-flex justify-content-between align-items-center">
-            <h2 class="section-title-underline mb-0"><i class="bi bi-mic-fill me-2"></i>Ajout à l'inventaire par reconnaissance vocale</h2>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                            <div class="card voice-recognition-panel mb-3">
-                                <div class="card-header">
-                                    <h4 class="mb-0"><i class="bi bi-mic-fill me-2"></i>Reconnaissance vocale</h4>
-                                </div>
-                                <div class="card-body">
-                                    <p id="inventoryVoiceStatus" class="lead text-center mb-4">Prêt à enregistrer</p>
-                                    
-                                    <div id="inventoryVoiceVisualizer" class="voice-visualizer mb-4">
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                        <div class="voice-bar"></div>
-                                    </div>
-                                    
-                                    <div class="text-center mb-4">
-                                        <div id="inventoryVoiceTimer" class="voice-timer h3">00:00</div>
-                                    </div>
-                                    
-                                    <div class="d-flex justify-content-center mb-4">
-                                        <button type="button" id="inventoryStartStopRecording" class="btn btn-lg gradient-button me-3">
-                                            <i class="bi bi-mic-fill me-2"></i>Démarrer l'enregistrement
-                                        </button>
-                                        <button type="button" id="inventoryVoiceCancel" class="btn btn-lg btn-outline-secondary">
-                                            <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
-                                        </button>
+    <div class="container mt-4 mb-4">                                                                                                                       
+            <div class="row">                                                                                                                                   
+                <div class="col-12 mb-4 d-flex justify-content-between align-items-center">                                                                     
+                    <h2 class="section-title-underline mb-0"><i class="bi bi-mic-fill me-2"></i>Ajout à l'inventaire par reconnaissance vocale</h2>                                                                                                                                        
+            </div>                                                                                                                                          
+        </div>                                                                                                                                              
+        <div class="row">                                                                                                                                   
+                <div class="col-md-12">                                                                                                                         
+                    <div class="card">                                                                                                                          
+                        <div class="card-body">                                                                                                                 
+                                    <div class="card voice-recognition-panel mb-3">                                                                             
+                                        <div class="card-header">                                                                                               
+                                            <h4 class="mb-0"><i class="bi bi-mic-fill me-2"></i>Reconnaissance vocale</h4>                                      
+                                    </div>                                                                                                                  
+                                    <div class="card-body">                                                                                                 
+                                        <p id="inventoryVoiceStatus" class="lead text-center mb-4">Prêt à enregistrer</p>                                   
+                                                                                                                                                                
+                                        <div id="inventoryVoiceVisualizer" class="voice-visualizer mb-4">                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                            <div class="voice-bar"></div>                                                                                   
+                                        </div>                                                                                                              
+                                                                                                                                                            
+                                        <div class="text-center mb-4">                                                                                      
+                                                <div id="inventoryVoiceTimer" class="voice-timer h3">00:00</div>                                                
+                                        </div>                                                                                                              
+
+    <div class="row justify-content-center g-2 mb-4">
+                                        <div class="col-12 col-sm-auto">
+                                            <button type="button" id="inventoryStartStopRecording" class="btn btn-lg gradient-button w-100">
+                                                <i class="bi bi-mic-fill me-2"></i>Démarrer l'enregistrement
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-auto">
+                                            <button type="button" class="btn btn-lg gradient-button w-100" data-bs-toggle="modal" data-bs-target="#quantityVoiceModal">
+                                                <i class="bi bi-plus-slash-minus me-2"></i>Modifier une quantité
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-auto">
+                                            <button type="button" id="inventoryVoiceCancel" class="btn btn-lg btn-outline-secondary w-100">
+                                                <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -81,6 +91,60 @@
     </div>
 </div>
 
+<!-- Modal pour la mise à jour de quantité par voix -->
+<div class="modal fade" id="quantityVoiceModal" tabindex="-1" aria-labelledby="quantityVoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quantityVoiceModalLabel"><i class="bi bi-plus-slash-minus me-2"></i>Modifier une quantité par commande vocale</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Exemples de commandes : "ajoute 5 vis", "réduit le nombre de clous de 3", "mets la quantité de marteaux à 10".</p>
+                <p class="small text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i><strong>Fonctionnalité expérimentale :</strong> La reconnaissance peut ne pas être toujours précise. Vérifiez bien les modifications.</p>
+                
+                <div class="card voice-recognition-panel">
+                    <div class="card-body">
+                        <p id="quantityVoiceStatus" class="lead text-center mb-4">Prêt à enregistrer</p>
+                        
+                        <div id="quantityVoiceVisualizer" class="voice-visualizer mb-4">
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                            <div class="voice-bar"></div>
+                        </div>
+                        
+                        <div class="text-center mb-4">
+                            <div id="quantityVoiceTimer" class="voice-timer h3">00:00</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-center mb-4">
+                            <button type="button" id="quantityStartStopRecording" class="btn btn-lg btn-primary">
+                                <i class="bi bi-mic-fill me-2"></i>Démarrer
+                            </button>
+                        </div>
+
+                        <div id="quantityVoiceResults" class="voice-results mt-4">
+                            <!-- Les résultats de la mise à jour seront affichés ici -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script src="{{ url_for('static', filename='js/voice-service.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -101,6 +165,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // For updating quantity
+    const quantityVoiceModal = document.getElementById('quantityVoiceModal');
+    if (quantityVoiceModal) {
+        const quantityVoiceRecognition = new QuantityVoiceRecognition({
+            btnId: null, // No button to open, it's opened by data-bs-toggle
+            modalId: 'quantityVoiceModal',
+            startStopBtnId: 'quantityStartStopRecording',
+            confirmBtnId: 'quantityVoiceConfirm', // Dummy
+            timerDisplayId: 'quantityVoiceTimer',
+            visualizerId: 'quantityVoiceVisualizer',
+            resultsContainerId: 'quantityVoiceResults',
+            statusTextId: 'quantityVoiceStatus',
+            onSuccess: function(data) {
+                notificationManager.success(data.message);
+                // Optionally, you could refresh the item list page if it's in the background
+                // For now, we just show a success message.
+            }
+        });
+
+        // Reset when modal is closed
+        quantityVoiceModal.addEventListener('hidden.bs.modal', function () {
+            quantityVoiceRecognition.resetRecording();
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -237,6 +237,99 @@ class AIService:
         except requests.exceptions.RequestException as e:
             logger.error(f"Erreur lors de l'appel à l'API Ollama (Chat): {e}")
             raise Exception(f"Erreur de communication avec l'API Ollama: {e}")
+
+    def process_audio_for_quantity_update(self, audio_file, audio_mime_type='audio/webm'):
+        """
+        Processes an audio file to extract quantity update information.
+        """
+        try:
+            suffix = self.getFileExtension(audio_mime_type)
+            logger.debug(f"Utilisation du suffixe '{suffix}' pour le mimeType '{audio_mime_type}'")
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                audio_path = temp_file.name
+                audio_file.save(audio_path)
+
+            transcription = self.transcribe_audio(audio_path, audio_mime_type)
+
+            if os.path.exists(audio_path):
+                os.unlink(audio_path)
+
+            if not transcription:
+                return {"error": "La transcription a échoué ou le texte est vide."}
+
+            return self.extract_quantity_update_from_text(transcription)
+        except Exception as e:
+            if 'audio_path' in locals() and os.path.exists(audio_path):
+                os.unlink(audio_path)
+            raise e
+
+    def extract_quantity_update_from_text(self, text):
+        """
+        Extrait le nom de l'article, l'action et la quantité à partir du texte transcrit.
+        Tolère les phrases d'intro de l'IA et extrait le bloc JSON.
+        """
+        import re
+        if not text:
+            return {}
+
+        prompt = (
+            "Tu es un assistant spécialisé dans la mise à jour de quantités d'inventaire à partir de commandes vocales. "
+            "Analyse la transcription suivante et extrais le nom de l'article, l'action (add, reduce, set), et la quantité. "
+            "Les actions peuvent être 'ajoute', 'augmente', 'rajoute' (add), 'enlève', 'réduit', 'retire' (reduce), ou 'mets à', 'fixe à', 'quantité à' (set). "
+            "Retourne un objet JSON unique avec les clés 'name', 'action', et 'quantity'. "
+            "La quantité doit être un nombre entier. "
+            "Exemple pour 'ajoute 5 vis': {\"name\": \"vis\", \"action\": \"add\", \"quantity\": 5}. "
+            "Exemple pour 'réduit le nombre de clous de 3': {\"name\": \"clous\", \"action\": \"reduce\", \"quantity\": 3}. "
+            "Exemple pour 'mets la quantité de marteaux à 10': {\"name\": \"marteaux\", \"action\": \"set\", \"quantity\": 10}. "
+            "Ne retourne que le JSON, sans aucun autre texte.\n"
+            f'Voici la transcription: "{text}"'
+        )
+
+        payload = {
+            'model': self.model_completion,
+            'prompt': prompt,
+            'stream': False
+        }
+
+        response = requests.post(self.completion_url, json=payload)
+
+        if response.status_code != 200:
+            raise Exception(f"Erreur lors de l'analyse avec Ollama: {response.text}")
+        
+        response_json = response.json()
+        logger.debug(f"Réponse brute d'Ollama pour quantité: {response_json}")
+        content = response_json.get('response', '').strip()
+        logger.debug(f"Contenu extrait pour quantité: {content}")
+        
+        if not content:
+            logger.error("ERREUR: Contenu vide dans la réponse Ollama pour quantité")
+            return {"error": "L'IA n'a pas pu générer de réponse."}
+
+        # Extraire le bloc JSON même si l'IA ajoute du texte autour
+        json_match = re.search(r'\{[\s\S]*\}', content)
+        if not json_match:
+            logger.error(f"Aucun bloc JSON trouvé dans la réponse IA: {content}")
+            return {"error": "L'IA a retourné un format invalide."}
+
+        json_str = json_match.group(0)
+        try:
+            data = json.loads(json_str)
+            if isinstance(data, str):
+                data = json.loads(data)
+
+            # Mettre une majuscule à la première lettre du nom
+            if 'name' in data and data['name']:
+                name = data['name']
+                data['name'] = name[0].upper() + name[1:] if len(name) > 1 else name.upper()
+            
+            if 'quantity' in data:
+                data['quantity'] = int(data['quantity'])
+
+            return data
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Erreur de parsing JSON pour la quantité: {e}. Contenu: {content}")
+            return {"error": "L'IA a retourné un format invalide."}
     
     def process_audio_file(self, audio_file, audio_mime_type='audio/webm', is_inventory=False, locations_context=None):
         """

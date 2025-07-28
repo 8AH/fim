@@ -8,6 +8,7 @@ from src.services.ai_service import AIService # Import de la classe pour instanc
 from src.models import db
 from src.models.item import Item # Item est déjà importé
 from src.models.supplier import Supplier  # Import du modèle Supplier
+from sqlalchemy import func
 
 ai_bp = Blueprint('ai', __name__, url_prefix='/api/ai') # Ajout du préfixe d'URL
 
@@ -77,6 +78,83 @@ def voice_recognition():
             'error_type': error_type
         }), 500
 
+@ai_bp.route('/voice-quantity-update', methods=['POST'])
+def voice_quantity_update():
+    """
+    Endpoint to update item quantity via voice command.
+    """
+    if 'audio' not in request.files:
+        return jsonify({'error': 'Aucun fichier audio n\'a été fourni'}), 400
+
+    audio_file = request.files['audio']
+    audio_mime_type = request.form.get('mimeType', 'audio/webm')
+
+    try:
+        import difflib
+        # Process audio to get action details
+        update_data = ai_service.process_audio_for_quantity_update(audio_file, audio_mime_type)
+        current_app.logger.info(f"Données de mise à jour de quantité extraites: {update_data}")
+
+        if not update_data or 'error' in update_data:
+            return jsonify({'error': update_data.get('error', 'Impossible d\'extraire les informations de la commande vocale.')}), 400
+
+        item_name = update_data.get('name')
+        action = update_data.get('action')
+        quantity_change = update_data.get('quantity')
+
+        if not all([item_name, action, isinstance(quantity_change, int)]):
+            return jsonify({'error': 'Informations manquantes ou invalides (nom, action, quantité) pour la mise à jour.'}), 400
+
+        # Recherche exacte (insensible à la casse)
+        item = Item.query.filter(func.lower(Item.name) == func.lower(item_name), Item.is_temporary == False).first()
+
+        # Si non trouvé, recherche tolérante (similarité)
+        if not item:
+            # Récupérer tous les articles non temporaires
+            all_items = Item.query.filter(Item.is_temporary == False).all()
+            # Calculer la similarité avec chaque nom d'article
+            names = [i.name for i in all_items]
+            matches = difflib.get_close_matches(item_name, names, n=1, cutoff=0.8)
+            if matches:
+                # Prendre le premier match
+                matched_name = matches[0]
+                item = next((i for i in all_items if i.name == matched_name), None)
+                current_app.logger.info(f"Aucune correspondance exacte, mais correspondance approchée trouvée: '{item_name}' ≈ '{matched_name}' (ID: {item.id})")
+            else:
+                return jsonify({'error': f"L'article '{item_name}' n\'a pas été trouvé dans l'inventaire (même en recherche approchée)."}), 404
+
+        # Déterminer la nouvelle quantité et le message
+        new_quantity = original_quantity
+        if action == 'add':
+            new_quantity += quantity_change
+            action_text = f"Ajout de {quantity_change}"
+        elif action == 'reduce':
+            if original_quantity >= quantity_change:
+                new_quantity -= quantity_change
+                action_text = f"Réduction de {quantity_change}"
+            else:
+                return jsonify({'error': f"Quantité insuffisante pour '{item.name}'. Quantité actuelle : {original_quantity}, Réduction demandée : {quantity_change}."}), 400
+        elif action == 'set':
+            new_quantity = quantity_change
+            action_text = f"Fixé à {quantity_change}"
+        else:
+            return jsonify({'error': f"Action '{action}' non reconnue."}), 400
+
+        # Rediriger vers la page de confirmation au lieu de commiter directement
+        return jsonify({
+            'success': True,
+            'redirect_url': url_for('admin.quantity_update_confirmation', 
+                                    item_id=item.id, 
+                                    new_quantity=new_quantity,
+                                    old_quantity=original_quantity,
+                                    action_text=action_text)
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur dans voice_quantity_update: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @ai_bp.route('/inventory-voice', methods=['POST']) # Suppression de /api/ du chemin
 def inventory_voice_recognition():
     """
@@ -107,6 +185,7 @@ def inventory_voice_recognition():
     except Exception as e:
         current_app.logger.error(f"Erreur dans inventory_voice_recognition: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
 
 
 @ai_bp.route('/chat/inventory', methods=['POST'])
