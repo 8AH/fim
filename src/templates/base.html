@@ -120,7 +120,7 @@
         <a href="{{ url_for('admin.inventory_voice_admin') }}" class="mobile-nav-item fab">
             <i class="bi bi-mic-fill"></i>
         </a>
-        <a href="{{ url_for('supplier.supplier_list') }}" class="mobile-nav-item {% if request.endpoint == 'admin.inventory_voice_admin' %}active{% endif %}">
+        <a href="{{ url_for('supplier.supplier_list') }}" class="mobile-nav-item {% if request.endpoint.startswith('supplier.') %}active{% endif %}">
             <i class="bi bi-truck"></i>
             <span>Fournisseurs</span>
         </a>
